@@ -1,0 +1,411 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt   
+from mpl_toolkits.basemap import Basemap
+from itertools import compress
+from collections import Counter     
+from tqdm import tqdm
+from scipy import stats
+
+import matplotlib as mpl
+mpl.rc('font',family='Arial')
+
+both_pm25 = np.load('both_pm25.npy')
+both_ozone = np.load('both_ozone.npy')
+
+pm_west = np.reshape(both_pm25,(26,60,7665))
+pm_west = pm_west[7:,:24,273:7573]
+pm_west = np.reshape(pm_west,(456,7300))
+oz_west = np.reshape(both_ozone,(26,60,7665))
+oz_west = oz_west[7:,:24,273:7573]
+oz_west = np.reshape(oz_west,(456,7300))
+
+def co_occurrence(percentile : int):
+    year_start = np.arange(0,7300,365)
+    all_matches = np.empty([456,7300])
+    for j in range(456):
+        cell = pm_west[j,:]
+        if np.nanmax(cell) > 0:
+            seas_days = np.empty(365)
+            fulldays = []
+            for k in range(20):
+                step = year_start[k]
+                sea = np.arange(step,step+365,1)
+                pm2 = pm_west[j,sea]
+                oz2 = oz_west[j,sea]
+                y3 = np.nanpercentile(pm2,percentile)
+                x3 = np.where(pm2 > y3)[0]
+                y4 = np.nanpercentile(oz2,percentile)
+                x4 = np.where(oz2 > y4)[0]
+                match2 = [x4[i] in x3 for i in range(len(x4))]
+                day_idx2 = list(compress(x4,match2))
+                for m in range(365):
+                    if m not in day_idx2:
+                        seas_days[m] = 0
+                    else:
+                        seas_days[m] = 1
+                fulldays.extend(list(seas_days))
+            all_matches[j,:] = fulldays
+        else:
+            all_matches[j,:] = ['nan']   
+    
+    return all_matches
+
+# here, I am searching for >90th percentile annual co-occurrences
+all_matches1 = co_occurrence(percentile=90)
+        
+year_start = np.arange(0,7300,365)
+co_trends = np.empty([456,3])
+for j in tqdm(range(456)):
+    cell = pm_west[j,:]
+    if np.nanmax(cell) > 0:
+        co_cell = all_matches1[j,:]
+        annuals = []
+        for k in range(20):
+            step = year_start[k]
+            annuals.append(np.nansum(co_cell[step+273:step+365]))
+        x = np.arange(20)
+        y = annuals
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+        co_trends[j,0] = slope
+        co_trends[j,1] = p_value
+        slopes = np.empty(10000)
+        for k in range(10000):
+            run = np.random.permutation(annuals)
+            slopes[k] = stats.linregress(x,run)[0]
+        co_trends[j,2] = stats.percentileofscore(slopes, slope)
+    else:
+        co_trends[j,:] = ['nan']
+        
+scores = co_trends[:,2]
+exceed = np.empty(456)
+for k in range(456):
+    cell = pm_west[k,:]
+    if np.nanmax(cell) > 0:
+        cell1 = scores[k]
+        slope = co_trends[k,0] 
+        if slope >= 0:
+            if cell1 > 95:
+                exceed[k] = 1
+            else:
+                exceed[k] = 0
+        else:
+            if cell1 < 5:
+                exceed[k] = 1
+            else:
+                exceed[k] = 0
+    else:
+        exceed[k] = 'nan'
+
+lat = np.arange(31,50,1)
+lon = np.arange(-126,-102,1)
+lon, lat = np.meshgrid(lon, lat)
+
+latvec = np.reshape(lat,456)
+lonvec = np.reshape(lon,456)
+df = pd.DataFrame({'lat':latvec,'lon':lonvec,'idx':exceed})
+df = df[df['idx'] == 1]
+df = df[df['lon'] != -103]
+lons = list(df.lon)
+lats = list(df.lat)
+
+lats = [lats[j] + 0.5 for j in range(len(lats))] 
+lons = [lons[j] + 0.5 for j in range(len(lons))]  
+
+var = np.reshape(co_trends[:,0], (19,24))
+lat = np.arange(31,50,1)
+lon = np.arange(-126,-102,1)
+lon, lat = np.meshgrid(lon, lat)
+
+# plot A
+
+plt.figure(figsize=(10, 8))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True, 
+             cmap = plt.cm.get_cmap('RdBu_r',17), vmin=-0.85, vmax=0.85)
+cb = plt.colorbar(ticks=np.arange(-0.8,0.9,0.1))
+cb.ax.tick_params(labelsize=13)
+cb.ax.set_title('d $y^{-1}$')
+plt.title('(A) JAS $\mathregular{PM_{2.5}}$/$\mathregular{O_3}$ co-occurrence trends', size=17)
+m.scatter(lons, lats, latlon=True, marker="o", s=15, c="black", alpha=1)  
+parallels = np.arange(30,51,5)
+m.drawparallels(parallels,labels=[1,0,0,0],fontsize=13)
+meridians = np.arange(-125,-99,5)
+m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=13)
+
+# plot B
+
+year_start = np.arange(0,7300,365)
+pm_trends2 = np.empty([456,2])
+for j in tqdm(range(456)):
+    cell = pm_west[j,:]
+    if np.nanmax(cell) > 0:
+        pm_cell = pm_west[j,:]
+        annuals = []
+        for k in range(20):
+            step = year_start[k]
+            year = pm_cell[step:step+365]
+            perc = np.nanpercentile(year,90)
+            warm = year[273:]
+            size = np.size(np.where(warm > perc))
+            annuals.append(size/37)
+        x = np.arange(20)
+        y = annuals
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+        pm_trends2[j,0] = slope
+        slopes = np.empty(10000)
+        for k in range(10000):
+            run = np.random.permutation(annuals)
+            slopes[k] = stats.linregress(x,run)[0]
+        pm_trends2[j,1] = stats.percentileofscore(slopes, slope)
+    else:
+        pm_trends2[j,:] = ['nan']
+        
+  scores = pm_trends2[:,1]
+exceed = np.empty(456)
+for k in range(456):
+    cell = pm_west[k,:]
+    if np.nanmax(cell) > 0:
+        cell1 = scores[k]
+        slope = pm_trends2[k,0] 
+        if slope >= 0:
+            if cell1 > 95:
+                exceed[k] = 1
+            else:
+                exceed[k] = 0
+        else:
+            if cell1 < 5:
+                exceed[k] = 1
+            else:
+                exceed[k] = 0
+    else:
+        exceed[k] = 'nan'
+
+latvec = np.reshape(lat,456)
+lonvec = np.reshape(lon,456)
+df = pd.DataFrame({'lat':latvec,'lon':lonvec,'idx':exceed})
+df = df[df['idx'] == 1]
+df = df[df['lon'] != -103]
+lons = list(df.lon)
+lats = list(df.lat)
+
+lats = [lats[j] + 0.5 for j in range(len(lats))] 
+lons = [lons[j] + 0.5 for j in range(len(lons))]
+
+plt.figure(figsize=(10, 8))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True, 
+             cmap = plt.cm.get_cmap('RdBu_r',20), vmin=-100, vmax=100)
+cb = plt.colorbar(ticks=np.arange(-100,101,10))
+cb.ax.tick_params(labelsize=13)
+cb.ax.set_title('+/- %')
+plt.title('(B) Change in annual fraction of \n extreme $\mathregular{PM_{2.5}}$ occurring during JAS', size=24)
+m.scatter(lons, lats, latlon=True, marker="o", s=15, c="black", alpha=1)  
+
+# plot C
+
+year_start = np.arange(0,7300,365)
+oz_trends2 = np.empty([456,2])
+for j in tqdm(range(456)):
+    cell = pm_west[j,:]
+    if np.nanmax(cell) > 0:
+        oz_cell = oz_west[j,:]
+        annuals = []
+        for k in range(20):
+            step = year_start[k]
+            year = oz_cell[step:step+365]
+            perc = np.nanpercentile(year,90)
+            warm = year[273:]
+            size = np.size(np.where(warm > perc))
+            annuals.append(size/37)
+        x = np.arange(20)
+        y = annuals
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+        oz_trends2[j,0] = slope
+        slopes = np.empty(10000)
+        for k in range(10000):
+            run = np.random.permutation(annuals)
+            slopes[k] = stats.linregress(x,run)[0]
+        oz_trends2[j,1] = stats.percentileofscore(slopes, slope)
+    else:
+        oz_trends2[j,:] = ['nan']
+        
+  scores = oz_trends2[:,1]
+exceed = np.empty(456)
+for k in range(456):
+    cell = pm_west[k,:]
+    if np.nanmax(cell) > 0:
+        cell1 = scores[k]
+        slope = oz_trends2[k,0] 
+        if slope >= 0:
+            if cell1 > 95:
+                exceed[k] = 1
+            else:
+                exceed[k] = 0
+        else:
+            if cell1 < 5:
+                exceed[k] = 1
+            else:
+                exceed[k] = 0
+    else:
+        exceed[k] = 'nan'
+
+latvec = np.reshape(lat,456)
+lonvec = np.reshape(lon,456)
+df = pd.DataFrame({'lat':latvec,'lon':lonvec,'idx':exceed})
+df = df[df['idx'] == 1]
+df = df[df['lon'] != -103]
+lons = list(df.lon)
+lats = list(df.lat)
+
+lats = [lats[j] + 0.5 for j in range(len(lats))] 
+lons = [lons[j] + 0.5 for j in range(len(lons))]       
+
+var = np.reshape(oz_trends2[:,0], (19,24))
+var = (var * 20) * 100
+lat = np.arange(31,50,1)
+lon = np.arange(-126,-102,1)
+lon, lat = np.meshgrid(lon, lat)
+
+plt.figure(figsize=(10, 8))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True, 
+             cmap = plt.cm.get_cmap('RdBu_r',20), vmin=-100, vmax=100)
+cb = plt.colorbar(ticks=np.arange(-100,101,10))
+cb.ax.tick_params(labelsize=13)
+cb.ax.set_title('+/- %')
+plt.title('(C) Change in annual fraction of \n extreme $\mathregular{O_{3}}$ occurring during JAS', size=24)
+m.scatter(lons, lats, latlon=True, marker="o", s=15, c="black", alpha=1) 
+
+# plot D
+
+# a different way of calculating co-occurrences - this method also returns the dates
+perc = 90
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+days1 = []
+for k in range(20):
+    step = year_start[k]
+    annual = np.arange(step,step+365,1)
+    dates1 = pd.date_range(start='10/1/{}'.format(years[k]), end='2/28/{}'.format(years[k+1]))
+    dates2 = pd.date_range(start='3/1/{}'.format(years[k+1]), end='9/30/{}'.format(years[k+1]))
+    dates3 = np.hstack([dates1,dates2])
+    for j in range(456):
+        cell = pm_west[j,:]
+        if np.nanmax(cell) > 0:
+            pm1 = pm_west[j,annual]
+            oz1 = oz_west[j,annual]
+            y1 = np.nanpercentile(pm1,perc)
+            x1 = np.where(pm1 > y1, 1, 0)
+            y2 = np.nanpercentile(oz1,perc)
+            x2 = np.where(oz1 > y2, 1, 0)
+            df = pd.DataFrame({'date':dates3,'p1':x1,'o1':x2})
+            idx = df.date[(df.p1==1)&(df.o1==1)]
+            days1.extend(idx)
+
+count1 = Counter(days1)
+items = sorted(count1.items())
+
+vals = []
+for k in range(len(count1)):
+    vals.append(items[k][1])
+vals = (np.array(vals)/375) * 100
+
+keys = []
+for k in range(len(count1)):
+    keys.append(items[k][0])
+
+dates = pd.date_range(start='10/1/2000', end='9/30/2020')
+dates = dates[~((dates.month == 2) & (dates.day == 29))]
+
+co_occur = np.zeros(7300)
+n = -1
+for k in range(7300):
+    day = dates[k]
+    if day in keys:
+        n += 1
+        co_occur[k] = vals[n]
+    else:
+        pass
+
+max1 = []
+max2 = []
+idx = np.arange(0,7300,365)
+for k in range(20):
+    step = idx[k]
+    cool_seas = co_occur[step:step+273]
+    warm_seas = co_occur[step+273:step+365]
+    max1.append(np.max(cool_seas))
+    max2.append(np.max(warm_seas))
+    
+x = np.arange(20)
+y = max1
+stats.linregress(x,y)
+
+intercept = stats.linregress(x,y)[1]
+slope = stats.linregress(x,y)[0]
+vals1 = []
+for k in range(20):
+    intercept += slope
+    vals1.append(intercept)
+
+slopes = np.empty(10000)
+for k in range(10000):
+    run = np.random.permutation(max1)
+    slopes[k] = stats.linregress(x,run)[0]
+    
+x = np.arange(20)
+y = max2
+stats.linregress(x,y)
+
+intercept = stats.linregress(x,y)[1]
+slope = stats.linregress(x,y)[0]
+vals2 = []
+for k in range(20):
+    intercept += slope
+    vals2.append(intercept)
+
+slopes = np.empty(10000)
+for k in range(10000):
+    run = np.random.permutation(max2)
+    slopes[k] = stats.linregress(x,run)[0]
+    
+fig = plt.figure(figsize=(10,6))
+plt.grid(linewidth=0.5)
+plt.plot(max2,'-or')
+plt.plot(max1,'-ob')
+plt.plot(vals2,'--r')
+plt.plot(vals1,'--b')
+plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
+           '','2010','','','','','2015','','','','','2020'), fontsize = 12)
+plt.yticks(np.arange(0,80,10), fontsize=12)
+plt.ylabel('Max daily % of gridcells', fontsize = 14)
+plt.xlabel('Year', fontsize = 14)
+plt.title('(D) Maximum western US % of gridcells', fontsize = 14)
+l = plt.legend(['JAS (+1.35% $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.02)',
+            'OCT-JUN (-0.30% $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.27)'], 
+            loc='upper left', fontsize=13)
+for text in l.get_texts():
+    s = str(text)
+    if s[12] == 'J':
+        text.set_color('r')
+    else:
+        text.set_color('b')
