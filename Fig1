@@ -411,3 +411,5 @@ for text in l.get_texts():
         text.set_color('r')
     else:
         text.set_color('b')
+
+ 
