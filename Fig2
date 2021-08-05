@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt   
 from mpl_toolkits.basemap import Basemap
 from itertools import compress
-from collections import Counter     
+from collections import Counter
+from scipy import stats
 
 import matplotlib as mpl
 mpl.rc('font',family='Arial')
@@ -19,6 +20,8 @@ pm_west = np.reshape(pm_west,(456,7300))
 oz_west = np.reshape(both_ozone,(26,60,7665))
 oz_west = oz_west[7:,:24,273:7573]
 oz_west = np.reshape(oz_west,(456,7300))
+
+# plot A
 
 perc = 90
 years = np.arange(2000,2021,1)
@@ -168,3 +171,267 @@ for text in l.get_texts():
     else:
         text.set_color('tab:green')
         
+# plot B
+
+year_start = np.arange(0,7300,365)
+all_matches = np.empty([456,3660])
+all_matches1 = np.empty([456,7300])
+for j in range(456):
+    cell = pm_west[j,:]
+    if np.nanmax(cell) > 0:
+        seas_days = np.empty(365)
+        fulldays = []
+        fulldays1 = []
+        for k in range(20):
+            step = year_start[k]
+            sea = np.arange(step,step+365,1)
+            pm2 = pm_west[j,sea]
+            oz2 = oz_west[j,sea]
+            y3 = np.nanpercentile(pm2,90)
+            x3 = np.where(pm2 > y3)[0]
+            y4 = np.nanpercentile(oz2,90)
+            x4 = np.where(oz2 > y4)[0]
+            match2 = [x4[i] in x3 for i in range(len(x4))]
+            day_idx2 = list(compress(x4,match2))
+            for m in range(365):
+                if m not in day_idx2:
+                    seas_days[m] = 0
+                else:
+                    seas_days[m] = 1
+            seas_days1 = seas_days[182:]
+            fulldays.extend(list(seas_days1))
+            fulldays1.extend(list(seas_days))
+        all_matches[j,:] = fulldays
+        all_matches1[j,:] = fulldays1
+    else:
+        all_matches[j,:] = ['nan']
+        all_matches1[j,:] = ['nan']   
+        
+pop2020 = np.load('pop2020.npy')
+popvec = np.reshape(pop2020,456)
+
+person_days = []
+idx = np.arange(0,3660,183)
+for k in range(20):
+    step = idx[k]
+    year = all_matches[:,step+91:step+183]
+    sums = np.sum(year,axis=1)
+    exp = popvec * sums
+    person_days.append(np.nansum(exp))
+    
+fig = plt.figure(figsize=(8,6))
+plt.grid(linewidth=0.5)
+plt.plot(person_days, '-o', markersize=7, color='tab:blue')
+plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
+           '','2010','','','','','2015','','','','','2020'), fontsize = 15)
+plt.yticks(np.arange(0,1400000000,200000000), ('0','200M','400M','600M','800M','1.0B','1.2B'), 
+           fontsize = 15)
+plt.ylabel('Person-Days', fontsize = 17)
+plt.xlabel('Year', fontsize = 17)
+plt.title('(B) Co-occurrence exposure', fontsize = 17)
+l = plt.legend(['Person-days (+24.9M $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ < 0.001)'], 
+            loc='upper left', fontsize=13)
+for text in l.get_texts():
+    s = str(text)
+    if s[12] == 'P':
+        text.set_color('tab:blue')
+        
+# plot C
+
+perc = 90
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+days1 = []
+for k in range(20):
+    step = year_start[k]
+    annual = np.arange(step,step+365,1)
+    dates1 = pd.date_range(start='10/1/{}'.format(years[k]), end='2/28/{}'.format(years[k+1]))
+    dates2 = pd.date_range(start='3/1/{}'.format(years[k+1]), end='9/30/{}'.format(years[k+1]))
+    dates3 = np.hstack([dates1,dates2])
+    for j in range(456):
+        cell = pm_west[j,:]
+        if np.nanmax(cell) > 0:
+            pm1 = pm_west[j,annual]
+            oz1 = oz_west[j,annual]
+            y1 = np.nanpercentile(pm1,perc)
+            x1 = np.where(pm1 > y1, 1, 0)
+            y2 = np.nanpercentile(oz1,perc)
+            x2 = np.where(oz1 > y2, 1, 0)
+            df = pd.DataFrame({'date':dates3,'p1':x1,'o1':x2})
+            idx = df.date[(df.p1==1)&(df.o1==1)]
+            days1.extend(idx)
+
+count1 = Counter(days1)
+items = sorted(count1.items())
+
+vals = []
+for k in range(len(count1)):
+    vals.append(items[k][1])
+vals = (np.array(vals)/375) * 100
+
+keys = []
+for k in range(len(count1)):
+    keys.append(items[k][0])
+    
+count_df = pd.DataFrame({'date':keys,'percentage':vals})
+count_df['month'] = pd.to_datetime(count_df['date']).dt.month 
+count_df['year'] = pd.to_datetime(count_df['date']).dt.year
+count_df['day'] = pd.to_datetime(count_df['date']).dt.day 
+
+count_df = count_df[~(count_df.month == 1)]
+count_df = count_df[~(count_df.month == 2)]
+count_df = count_df[~(count_df.month == 3)]
+count_df = count_df[~(count_df.month == 4)]
+count_df = count_df[~(count_df.month == 5)]
+count_df = count_df[~(count_df.month == 6)]
+count_df = count_df[~(count_df.month == 10)]
+count_df = count_df[~(count_df.month == 11)]
+count_df = count_df[~(count_df.month == 12)]
+
+dates = pd.date_range(start='10/1/2000', end='9/30/2020')
+dates = dates[~((dates.month == 2) & (dates.day == 29))]
+dates = pd.DataFrame({'date':dates}).astype(str)
+occ20 = count_df[count_df['percentage'] >= 25] # days with >25% of western US seeing co-occurrence
+dates20 = list(occ20.date.astype(str))
+dates = list(dates.date)
+
+ks = []
+for k in range(7300):
+    d = dates[k]
+    if d in dates20:
+        ks.append(k)
+
+lats = np.arange(31,50,1)
+lons = np.arange(-126,-102,1)
+lats = np.append(lats,50)
+lons = np.append(lons,-102)
+
+# this code calculates the approximate area (in sq. km.) of each grid cell
+# in order to cosine-normalize the data (to remove latitude distortion)
+areas = np.empty([19,24])
+for i in range(19):
+    lat1 = lats[i]
+    lat2 = lats[i+1]
+    lat_diff = lat2 - lat1
+    lat_dist = np.abs(lat_diff * 111) # km for one degree of latitude in the mid-latitudes 
+    for j in range(24):
+        lon1 = lons[j]
+        lon2 = lons[j+1]
+        lon_diff = lon2 - lon1
+        cosrad = np.cos(np.deg2rad(lat1))
+        deg1 = cosrad * 111.32 # km for one degree of longitude at equator
+        lon_dist = deg1 * lon_diff
+        areas[i,j] = lat_dist * lon_dist
+area_vec = np.reshape(areas,456)
+area_vec = area_vec/10000
+
+year_idxs = np.empty([20,365])
+year_start = np.arange(0,7300,365)
+for k in range(20):
+    step = year_start[k]
+    year_idxs[k,:] = np.arange(step,step+365,1)
+    
+pm_normed = np.empty([456,7300])
+oz_normed = np.empty([456,7300])
+for k in range(7300):
+    day1 = pm_west[:,k]
+    day2 = oz_west[:,k]
+    pm_normed[:,k] = day1/area_vec
+    oz_normed[:,k] = day2/area_vec
+    
+year_nums = np.arange(20)
+occ20_vals1 = np.empty([72,456])
+occ20_vals2 = np.empty([72,456])
+occ20_idx = np.empty(72)
+for k in range(72):
+    idx = ks[k]
+    bools = [idx in year_idxs[j,:] for j in range(20)]
+    year_idx = list(compress(year_nums,bools))[0]
+    day = all_matches1[:,idx]
+    pm_day = pm_normed[:,idx]
+    oz_day = oz_normed[:,idx]
+    pms = np.empty(456)
+    ozs = np.empty(456)
+    for j in range(456):
+        g = day[j]
+        p1 = pm_day[j]
+        o1 = oz_day[j]
+        if g == 1:
+            pms[j] = p1
+            ozs[j] = o1
+        else:
+            pms[j] = 'nan'
+            ozs[j] = 'nan'
+    occ20_vals1[k,:] = pms
+    occ20_vals2[k,:] = ozs
+    occ20_idx[k] = year_idx
+    
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+n = -1
+scores_pm = np.empty([72,456])
+scores_oz = np.empty([72,456])
+for k in range(20):
+    step = year_start[k]
+    sea = np.arange(step,step+365,1)
+    pm2 = pm_west[:,sea]
+    oz2 = oz_west[:,sea]
+    these_occs = np.where(occ20_idx==k)[0]
+    if len(these_occs) > 0:
+        year_array1 = occ20_vals1[these_occs,:]
+        year_array2 = occ20_vals2[these_occs,:]
+        for i in range(year_array1.shape[0]):
+            n += 1
+            this_day1 = year_array1[i,:]
+            this_day2 = year_array2[i,:]
+            scores1 = []
+            scores2 = []
+            for j in range(456):
+                cell1 = pm2[j,:]
+                cell2 = oz2[j,:]
+                scores1.append(stats.percentileofscore(cell1,this_day1[j]))
+                scores2.append(stats.percentileofscore(cell2,this_day2[j]))
+            scores_pm[n,:] = scores1
+            scores_oz[n,:] = scores2
+            
+wide_percs_pm = np.empty(20)
+wide_percs_oz = np.empty(20)
+for k in range(20):
+    yr = year_idxs[k,:]
+    mats = [ks[j] in yr for j in range(72)]
+    idxm = list(compress(np.arange(72),mats))
+    if len(idxm) > 1:
+        this_yr1 = scores_pm[idxm,:]
+        this_yr2 = scores_oz[idxm,:]
+        avgs1 = np.nanmean(this_yr1,axis=0)
+        avgs2 = np.nanmean(this_yr2,axis=0)
+        wide_percs_pm[k] = np.nanmean(avgs1)
+        wide_percs_oz[k] = np.nanmean(avgs2)
+    elif len(idxm) == 1:
+        this_yr1 = scores_pm[idxm,:]
+        this_yr2 = scores_oz[idxm,:]
+        wide_percs_pm[k] = np.nanmean(this_yr1)
+        wide_percs_oz[k] = np.nanmean(this_yr2)
+    else:
+        wide_percs_pm[k] = 0
+        wide_percs_oz[k] = 0
+
+wide_percs_pm[wide_percs_pm == 0] = 'nan'
+wide_percs_oz[wide_percs_oz == 0] = 'nan'
+
+plt.figure(figsize=(8,6))
+plt.plot(wide_percs_pm,'*',color='tab:orange',markersize=13)
+plt.plot(wide_percs_oz,'*',color='tab:blue',markersize=13)
+dummies = np.repeat(95,20)
+plt.plot(dummies,'*',color='tab:blue',alpha=0)
+plt.grid(linewidth=0.5)
+plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','','',
+           '2010','','','','','2015','','','','','2020'), fontsize = 15)
+plt.yticks(np.arange(90,101,1), fontsize=15)
+plt.ylabel('Average percentile', fontsize = 17)
+plt.xlabel('Year', fontsize = 17)
+plt.title('(C) $\mathregular{PM_{2.5}}$/$\mathregular{O_3}$ percentiles during widespread events', fontsize = 17)
+plt.legend(['$\mathregular{PM_{2.5}}$ percentile','$\mathregular{O_3}$ percentile'],
+           loc='lower left',fontsize=13)
+
+# plot D
