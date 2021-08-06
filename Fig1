@@ -13,7 +13,7 @@ import matplotlib as mpl
 mpl.rc('font',family='Arial')
 
 # these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
-# downloaded from Zenodo.org (see Readme for details)
+# downloaded from Zenodo.org (see README for details)
 # dimension 1: 19 latitudes from 31-49N
 # dimension 2: 24 longitudes from 126-103W
 # dimension 3: 7300 days from 1 OCT 2000 - 30 SEP 2020
