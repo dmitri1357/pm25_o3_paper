@@ -12,15 +12,16 @@ from scipy import stats
 import matplotlib as mpl
 mpl.rc('font',family='Arial')
 
-both_pm25 = np.load('both_pm25.npy')
-both_ozone = np.load('both_ozone.npy')
+# these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
+# downloaded from Zenodo.org (see Readme for details)
+# dimension 1: 19 latitudes from 31-49N
+# dimension 2: 24 longitudes from 126-103W
+# dimension 3: 7300 days from 1 OCT 2000 - 30 SEP 2020
+pm_west = np.load('pm_west.npy') # average daily concentrations
+oz_west = np.load('oz_west.npy') # MDA8 concentrations
 
-pm_west = np.reshape(both_pm25,(26,60,7665))
-pm_west = pm_west[7:,:24,273:7573]
-pm_west = np.reshape(pm_west,(456,7300))
-oz_west = np.reshape(both_ozone,(26,60,7665))
-oz_west = oz_west[7:,:24,273:7573]
-oz_west = np.reshape(oz_west,(456,7300))
+pm_west = np.reshape(pm_west,(456,7300)) # vectorize lats & lons
+oz_west = np.reshape(oz_west,(456,7300)) # vectorize lats & lons
 
 def co_occurrence(percentile : int):
     year_start = np.arange(0,7300,365)
