@@ -435,3 +435,64 @@ plt.legend(['$\mathregular{PM_{2.5}}$ percentile','$\mathregular{O_3}$ percentil
            loc='lower left',fontsize=13)
 
 # plot D
+
+occ20_pm = np.empty(72)
+occ20_oz = np.empty(72)             
+for k in range(72):
+    idx = ks[k]
+    day = all_matches1[:,idx]
+    pm_day = pm_normed[:,idx]
+    oz_day = oz_normed[:,idx]
+    pms = []
+    ozs = []
+    for j in range(456):
+        g = day[j]
+        p1 = pm_day[j]
+        o1 = oz_day[j]
+        if g == 1:
+            pms.append(p1)
+            ozs.append(o1)
+    occ20_pm[k] = np.nanmean(pms)
+    occ20_oz[k] = np.nanmean(ozs)
+
+df1 = pd.DataFrame({'pm25':occ20_pm,'ozone':occ20_oz,'year':occ20.year})
+avgs = df1.groupby([df1.year]).mean()
+pm = list(avgs.pm25)
+oz = list(avgs.ozone)
+pm.insert(0,0)
+pm.insert(1,0)
+pm.insert(3,0)
+pm.insert(4,0)
+pm.insert(8,0)
+pm.insert(9,0)
+pm.insert(18,0)
+oz.insert(0,0)
+oz.insert(1,0)
+oz.insert(3,0)
+oz.insert(4,0)
+oz.insert(8,0)
+oz.insert(9,0)
+oz.insert(18,0)
+
+fig, ax1 = plt.subplots()
+plt.axhline(y = 70, color = 'tab:blue', linestyle = '--')
+plt.axhline(y = 46.73, color = 'tab:orange', linestyle = '--')
+color = 'tab:blue'
+ax1.set_xlabel('Year', size=14)
+ax1.set_ylabel('$\mathregular{O_3}$ conc. (ppb)', color=color, size=14)
+ax1.set_yticks(np.arange(0,85,5))
+ax1.set_ylim(top=80)
+ax1.set_xticks(np.arange(0,20,1))
+ax1.set_xticklabels(['2001','','','','2005','','','','','2010','','','','',
+                     '2015','','','','','2020'])
+ax1.bar(np.arange(20), oz, color=color, width=0.3)
+ax1.tick_params(axis='y', labelcolor=color)
+ax2 = ax1.twinx()  
+color = 'tab:orange'
+ax2.set_ylabel('$\mathregular{PM_{2.5}}$ conc. ($\mu$g/$\mathregular{m^3}$)', color=color, size=14)  
+ax2.set_yticks(np.arange(0,65,5))
+ax2.set_ylim(top=60)
+ax2.bar(np.arange(20)+0.3, pm, color=color, width=0.3)
+ax2.tick_params(axis='y', labelcolor=color)
+plt.title('(D) Avg. concentrations during widespread events', fontsize = 14)
+
