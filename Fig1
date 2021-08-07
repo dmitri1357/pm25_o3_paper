@@ -170,7 +170,7 @@ for j in tqdm(range(456)):
     else:
         pm_trends2[j,:] = ['nan']
         
-  scores = pm_trends2[:,1]
+scores = pm_trends2[:,1]
 exceed = np.empty(456)
 for k in range(456):
     cell = pm_west[k,:]
