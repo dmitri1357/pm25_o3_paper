@@ -201,6 +201,12 @@ lats = list(df.lat)
 lats = [lats[j] + 0.5 for j in range(len(lats))] 
 lons = [lons[j] + 0.5 for j in range(len(lons))]
 
+var = np.reshape(pm_trends2[:,0], (19,24))
+var = (var * 20) * 100
+lat = np.arange(31,50,1)
+lon = np.arange(-126,-102,1)
+lon, lat = np.meshgrid(lon, lat)
+
 plt.figure(figsize=(10, 8))
 m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
             width=2.5E6, height=2.5E6,
