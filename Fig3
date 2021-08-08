@@ -1,3 +1,289 @@
 #!/usr/bin/env python3
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt   
+from mpl_toolkits.basemap import Basemap
+from itertools import compress
+from collections import Counter
+import h5py
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Polygon
 
+import matplotlib as mpl
+mpl.rc('font',family='Arial')
+
+# these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
+# downloaded from Zenodo.org (see README for details)
+# dimension 1: 19 latitudes from 31-49N
+# dimension 2: 24 longitudes from 126-103W
+# dimension 3: 7300 days from 1 OCT 2000 - 30 SEP 2020
+pm_west = np.load('pm_west.npy') # average daily concentrations
+oz_west = np.load('oz_west.npy') # MDA8 concentrations
+
+pm_west = np.reshape(pm_west,(456,7300)) # vectorize lats & lons
+oz_west = np.reshape(oz_west,(456,7300)) # vectorize lats & lons
+
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+all_matches = np.empty([456,3660])
+all_matches1 = np.empty([456,7300])
+for j in range(456):
+    cell = pm_west[j,:]
+    if np.nanmax(cell) > 0:
+        seas_days = np.empty(365)
+        fulldays = []
+        fulldays1 = []
+        for k in range(20):
+            step = year_start[k]
+            sea = np.arange(step,step+365,1)
+            pm2 = pm_west[j,sea]
+            oz2 = oz_west[j,sea]
+            y3 = np.nanpercentile(pm2,90)
+            x3 = np.where(pm2 > y3)[0]
+            y4 = np.nanpercentile(oz2,90)
+            x4 = np.where(oz2 > y4)[0]
+            match2 = [x4[i] in x3 for i in range(len(x4))]
+            day_idx2 = list(compress(x4,match2))
+            for m in range(365):
+                if m not in day_idx2:
+                    seas_days[m] = 0
+                else:
+                    seas_days[m] = 1
+            seas_days1 = seas_days[182:]
+            fulldays.extend(list(seas_days1))
+            fulldays1.extend(list(seas_days))
+        all_matches[j,:] = fulldays
+        all_matches1[j,:] = fulldays1
+    else:
+        all_matches[j,:] = ['nan']
+        all_matches1[j,:] = ['nan']   
+        
+all_matches2 = np.empty([456,1840])
+idx1 = np.arange(0,3660,183)
+idx2 = np.arange(0,1841,92)
+for j in range(456):
+    cell = pm_west[j,:]
+    for k in range(20):
+        step1 = idx1[k]
+        step2 = idx2[k]
+        if np.nanmax(cell) > 0:
+            chunk = all_matches[j,step1+91:step1+183]
+            all_matches2[j,step2:step2+92] = chunk
+        else:
+            all_matches2[j,step2:step2+92] = ['nan']
+
+# the file 'som_12.mat' is a 12-node SOM (3x4) trained on 500-hPa 
+# geopotential height anomalies over western N. America (1979-2020; July-September)
+f = h5py.File('som_12.mat','r')
+som = f.get('som') # Get a certain dataset
+som = np.squeeze(np.array(som))
+som_trunc = som[2024:]
+
+# July-September 500-hPa geopotential height anomalies (from ERA5)
+z500_anoms_jas = np.load('z500_anoms_jas.npy')
+
+lat = np.arange(25,55.25,0.25)
+lon = np.arange(-130,-99.75,0.25)
+lon, lat = np.meshgrid(lon, lat)
+nodes = [5,9,10,2,3,4]
+letters = ['A','B','C','D','E','F']
+fig = plt.figure(figsize=(14,6))
+for x in range(6):
+    fig.add_subplot(1,6,x+1)
+    node = nodes[x]
+    letter = letters[x]
+    day_idx = np.where(som_trunc==node)[0]
+    perc = np.round(((np.size(day_idx)/np.size(som_trunc)) * 100),1)
+    z500 = z500_anoms_jas[:,:,som==node]
+    means = np.mean(z500, axis=2)
+    var = np.reshape(means, (121,121))
+    m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+    m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+    m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+    m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+    m.drawcoastlines(color='black')
+    m.pcolormesh(lon, lat, var, latlon=True, 
+                 cmap = plt.cm.get_cmap('seismic',40))
+    #plt.colorbar(ticks=np.arange(-200,201,20))
+    plt.title('({}) Node {} ({}%)'.format(letter,node,perc), size=13)
+    plt.clim(-200,200)
+fig.subplots_adjust(hspace = 0.3)
+
+# this code is to create the horizontal colorbar for GPH anomalies
+fig = plt.figure(figsize=(7,6))
+node = nodes[x]
+day_idx = np.where(som_trunc==node)[0]
+perc = np.round(((np.size(day_idx)/np.size(som_trunc)) * 100),1)
+z500 = z500_anoms_jas[:,:,som==node]
+means = np.mean(z500, axis=2)
+var = np.reshape(means, (121,121))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=5.5E6, height=5.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True, 
+             cmap = plt.cm.get_cmap('seismic',40))
+cb = plt.colorbar(ticks=np.arange(-200,201,40), orientation='horizontal', aspect=45)
+cb.ax.set_title('m')
+cb.ax.tick_params(labelsize=13)
+#plt.title('Node {} ({}%)'.format(node,perc), size=12)
+plt.title('GPH'.format(node,perc), size=12)
+plt.clim(-200,200)
+
+# dataset of standardized Tmax anomalies (z-scores) from ERA5
+tmax_anoms_amjjas = np.load('tmax_amjjas_z.npy')
+tmax_anoms_amjjas = tmax_anoms_amjjas[20:141,20:141,:]
+tvec = np.reshape(tmax_anoms_amjjas,(14641,7686))
+tmax_anoms_jas = np.empty([14641,3864])
+idx1 = np.arange(0,7687,183)
+idx2 = np.arange(0,3865,92)
+for k in range(42):
+    step1 = idx1[k]
+    step2 = idx2[k]
+    yr = tvec[:,step1+91:step1+183]
+    tmax_anoms_jas[:,step2:step2+92] = yr
+
+tmax_anoms_jas = np.reshape(tmax_anoms_jas,(121,121,3864))
+tmax_anoms_jas = tmax_anoms_jas[:,:,2024:]
+
+lat = np.arange(25,55.25,0.25)
+lon = np.arange(-130,-99.75,0.25)
+lon, lat = np.meshgrid(lon, lat)
+nodes = [5,9,10,2,3,4]
+fig = plt.figure(figsize=(14,6))
+for x in range(6):
+    fig.add_subplot(1,6,x+1)
+    node = nodes[x]
+    t = tmax_anoms_jas[:,:,som_trunc==node]
+    means = np.mean(t, axis=2)
+    var = np.reshape(means, (121,121))
+    m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+                width=2.5E6, height=2.5E6,
+                lat_0=40, lon_0=-114)
+    m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+    m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+    m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+    m.drawcoastlines(color='black')
+    m.pcolormesh(lon, lat, var, latlon=True, 
+                 cmap = plt.cm.get_cmap('RdBu_r',12))
+    plt.clim(-3,3)
+    m.readshapefile('World_Seas_IHO_v3',name='oceans',color='k')
+    ax = fig.add_subplot(1,6,x+1)
+    patches = [Polygon(np.array(shape), True) for info, shape in zip(m.oceans_info, m.oceans)]
+    ax.add_collection(PatchCollection(patches, facecolor= 'white',
+                                      edgecolor='w', linewidths=0.1, zorder=2))     
+fig.subplots_adjust(hspace = 0.3)
+
+# this code is to create the horizontal colorbar for Tmax
+fig = plt.figure(figsize=(7,6))
+node = nodes[x]
+t = tmax_anoms_jas[:,:,som_trunc==node]
+means = np.mean(t, axis=2)
+var = np.reshape(means, (121,121))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=5.5E6, height=5.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True, 
+             cmap = plt.cm.get_cmap('RdBu_r',12))
+cb = plt.colorbar(ticks=np.arange(-3,3.5,0.5), orientation='horizontal', aspect=45)
+cb.ax.set_title('$\it{z}$')
+cb.ax.tick_params(labelsize=13)
+plt.clim(-3,3)
+plt.savefig('tmax_cbar.png'.format(node),dpi=600)
+
+# to calculate widespread days in each node
+wide_matches = np.zeros([12,456])
+nodes = np.arange(1,13,1)
+for k in range(12):
+    node = nodes[k]
+    idx = np.where(som_trunc==node)[0]
+    matchlist = []
+    for j in range(np.size(idx)):
+        day_idx = idx[j]
+        day = all_matches2[:,day_idx]
+        idx_sum = np.nansum(day)
+        if idx_sum >= 94: # minimum 94 cells for 25% WUS coverage
+            idx_wide = np.where(day == 1)[0]
+            matchlist.extend(idx_wide)
+    if np.size(matchlist) > 0:
+        agg = Counter(matchlist)
+        items = sorted(agg.items())
+        vals = []
+        for i in range(len(agg)):
+            vals.append(items[i][1])
+        keys = []
+        for m in range(len(agg)):
+            keys.append(items[m][0])
+        co_occur = np.zeros(456)
+        n = -1
+        for x in range(456):
+            if x in keys:
+                n += 1
+                co_occur[x] = vals[n]
+        wide_matches[k,:] = co_occur
+        
+lat = np.arange(31,50,1)
+lon = np.arange(-126,-102,1)
+lon, lat = np.meshgrid(lon, lat)
+nodes = [5,9,10,2,3,4]
+fig = plt.figure(figsize=(14,6))
+for x in range(6):
+    fig.add_subplot(1,6,x+1)
+    node = nodes[x]
+    #occ_pop = occ_pops[x]
+    occ = wide_matches[node-1,:]
+    for m in range(456):
+        cell = pm_west[m,:]
+        if np.nanmax(cell) > 0:
+            occ[m] = occ[m]
+        else:
+            occ[m] = 'nan'
+    var = np.reshape(occ, (19,24))
+    m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+                width=2.5E6, height=2.5E6,
+                lat_0=40, lon_0=-114)
+    m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+    m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+    m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+    m.drawcoastlines(color='black')
+    m.pcolormesh(lon, lat, var, latlon=True, 
+                 cmap = plt.cm.get_cmap('Reds',13), vmin=0, vmax=13)
+    #plt.clim(-5,5)
+    #plt.colorbar(ticks=np.arange(-5,6,1))
+    #plt.colorbar()
+    #plt.title('({}%)'.format(popperc1), size=13)
+    #plt.text(50000,100000,'{}M'.format(occ_pop), size=16)
+fig.subplots_adjust(hspace = 0.3)
+
+# this code is to create the horizontal colorbar for widespread co-occurrences
+fig = plt.figure(figsize=(7,6))
+node = nodes[x]
+#occ_pop = occ_pops[x]
+occ = wide_matches[x,:]
+var = np.reshape(occ, (19,24))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True, 
+             cmap = plt.cm.get_cmap('Reds',14), vmin=0, vmax=13)
+#plt.clim(-5,5)
+cb = plt.colorbar(ticks=np.arange(0,14,1), orientation='horizontal', aspect=45)
+cb.ax.set_title('d')
+cb.ax.tick_params(labelsize=13)
+cb.set_ticks(np.linspace(0.5,13.5,15))
+cb.set_ticklabels(['0','1','2','3','4','5','6','7','8',
+                   '9','10','11','12','13'])
