@@ -4,7 +4,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt   
 from mpl_toolkits.basemap import Basemap
+from collections import Counter
 import h5py
+from scipy import stats
 
 import matplotlib as mpl
 mpl.rc('font',family='Arial')
@@ -14,3 +16,199 @@ mpl.rc('font',family='Arial')
 f = h5py.File('som_12.mat','r')
 som = f.get('som') 
 som = np.squeeze(np.array(som))
+
+# plot A
+
+annual = np.split(som,42) 
+counts1 = []
+for k in range(42):
+    year = annual[k]
+    x0 = np.size(np.where(year==5)) # SOM node 5
+    x1 = np.size(np.where(year==9)) # SOM node 9
+    x2 = np.size(np.where(year==10)) # SOM node 10
+    x3 = x0+x1+x2
+    counts1.append(x3) 
+    
+x = np.arange(1,43,1)
+y = counts1
+intercept = stats.linregress(x,y)[1]
+slope = stats.linregress(x,y)[0]
+vals1 = []
+for j in range(42):
+    intercept += slope
+    vals1.append(intercept)
+    
+x = np.arange(1,43,1)
+slopes1 = np.empty(10000)
+for k in range(10000):
+    run = np.random.permutation(counts1)
+    slopes1[k] = stats.linregress(x,run)[0]
+slope_perm = stats.percentileofscore(slopes1, slope)
+
+if slope > 0:
+    permuted_pvals = 100 - slope_perm
+else:
+    permuted_pvals = 100 - (100 - slope_perm)
+permuted_pvals = permuted_pvals/100
+print(permuted_pvals)
+
+counts2 = []
+for k in range(42):
+    year = annual[k]
+    x0 = np.size(np.where(year==2)) # SOM node 2
+    x1 = np.size(np.where(year==3)) # SOM node 3
+    x2 = np.size(np.where(year==4)) # SOM node 4
+    x3 = x0+x1+x2
+    counts2.append(x3) 
+    
+x = np.arange(1,43,1)
+y = counts2
+intercept1 = stats.linregress(x,y)[1]
+slope1 = stats.linregress(x,y)[0]
+vals2 = []
+for j in range(42):
+    intercept1 += slope1
+    vals2.append(intercept1)
+    
+x = np.arange(1,43,1)
+slopes2 = np.empty(10000)
+for k in range(10000):
+    run = np.random.permutation(counts2)
+    slopes2[k] = stats.linregress(x,run)[0]
+slope_perm1 = stats.percentileofscore(slopes2, slope1)
+
+if slope1 > 0:
+    permuted_pvals = 100 - slope_perm1
+else:
+    permuted_pvals = 100 - (100 - slope_perm1)
+permuted_pvals = permuted_pvals/100
+print(permuted_pvals)
+
+fig = plt.figure(figsize=(8,6))
+plt.plot(counts1,'-o', color='tab:brown')
+plt.plot(counts2,'-o', color='tab:green')
+plt.plot(vals1,'--', color='tab:brown')
+plt.plot(vals2,'--', color='tab:green')
+plt.grid(linewidth=0.5)
+#plt.axhline(y=np.mean(counts),color='red')
+plt.xticks(np.arange(0,42,1), ('','1980','','','','','1985','','','','','1990','','',
+                   '','','1995','','','','','2000','','','','','2005','','','','',
+                   '2010','','','','','2015','','','','','2020'), fontsize = 13)
+plt.yticks(np.arange(0,55,5), fontsize=13)
+plt.ylabel('# of July-September days', fontsize = 17)
+plt.xlabel('Year', fontsize = 17)
+plt.title('(A) Combined annual total days', fontsize = 17)
+l = plt.legend(['Nodes 5,9,10 (+14.2 d, $\it{p}$ < 0.001)',
+            'Nodes 2,3,4 (-12.6 d, $\it{p}$ < 0.001)'], 
+            loc='upper left', fontsize=15)
+for text in l.get_texts():
+    s = str(text)
+    if s[18] == '5':
+        text.set_color('tab:brown')
+    else:
+        text.set_color('tab:green')
+        
+# plot B
+
+som1 = som.copy()
+som1 = np.where(som1==5, 13, som1)
+som1 = np.where(som1==9, 13, som1)
+som1 = np.where(som1==10, 13, som1)
+
+streaks = np.empty(42)
+years = np.arange(1979,2021,1)
+som_years = np.split(som1,42)
+for k in range(42):
+    year = years[k]
+    dates = pd.date_range(start='7/1/{}'.format(year), end='9/30/{}'.format(year))
+    occ = pd.Series(som_years[k])
+    only = occ[occ == 13]
+    occurs = dates[only.index]
+    occurs = pd.DataFrame(occurs).rename(columns={0:'Date'})
+    dt = occurs['Date']
+    day = pd.Timedelta('1d')
+    breaks = dt.diff() != day
+    groups = breaks.cumsum()
+    groups1 = Counter(groups)
+    val = np.max(list(groups1.values()))
+    streaks[k] = val
+
+x = np.arange(1,43,1)
+y = streaks
+intercept = stats.linregress(x,y)[1]
+slope = stats.linregress(x,y)[0]
+vals1 = []
+for j in range(42):
+    intercept += slope
+    vals1.append(intercept)
+slope * 42 # +4.3 days
+
+x = np.arange(1,43,1)
+slopes1 = np.empty(10000)
+for k in range(10000):
+    run = np.random.permutation(streaks)
+    slopes1[k] = stats.linregress(x,run)[0]
+slope_perm = stats.percentileofscore(slopes1, slope)
+
+som2 = som.copy()
+som2 = np.where(som2==2, 13, som2)
+som2 = np.where(som2==3, 13, som2)
+som2 = np.where(som2==4, 13, som2)
+
+streaks1 = np.empty(42)
+years = np.arange(1979,2021,1)
+som_years = np.split(som2,42)
+for k in range(42):
+    year = years[k]
+    dates = pd.date_range(start='7/1/{}'.format(year), end='9/30/{}'.format(year))
+    occ = pd.Series(som_years[k])
+    only = occ[occ == 13]
+    occurs = dates[only.index]
+    occurs = pd.DataFrame(occurs).rename(columns={0:'Date'})
+    dt = occurs['Date']
+    day = pd.Timedelta('1d')
+    breaks = dt.diff() != day
+    groups = breaks.cumsum()
+    groups1 = Counter(groups)
+    val = np.max(list(groups1.values()))
+    streaks1[k] = val
+
+x = np.arange(1,43,1)
+y = streaks1
+intercept1 = stats.linregress(x,y)[1]
+slope1 = stats.linregress(x,y)[0]
+vals2 = []
+for j in range(42):
+    intercept1 += slope1
+    vals2.append(intercept1)
+slope1 * 42 # -4.3 days
+
+x = np.arange(1,43,1)
+slopes2 = np.empty(10000)
+for k in range(10000):
+    run1 = np.random.permutation(streaks1)
+    slopes2[k] = stats.linregress(x,run1)[0]
+slope_perm1 = stats.percentileofscore(slopes2, slope1)
+
+fig = plt.figure(figsize=(8,6))
+plt.plot(streaks,'-o', color='tab:brown')
+plt.plot(streaks1,'-o', color='tab:green')
+plt.plot(vals1,'--', color='tab:brown')
+plt.plot(vals2,'--', color='tab:green')
+plt.grid(linewidth=0.5)
+plt.xticks(np.arange(0,42,1), ('','1980','','','','','1985','','','','','1990','','',
+                   '','','1995','','','','','2000','','','','','2005','','','','',
+                   '2010','','','','','2015','','','','','2020'), fontsize = 13)
+plt.yticks(np.arange(0,24,2), fontsize=13)
+plt.ylabel('# of consecutive days', fontsize = 17)
+plt.xlabel('Year', fontsize = 17)
+plt.title('(B) Combined multi-day persistence', fontsize = 17)
+l = plt.legend(['Nodes 5,9,10 (+4.3 cons. d, $\it{p}$ = 0.008)',
+            'Nodes 2,3,4 (-4.3 cons. d, $\it{p}$ = 0.002)'], 
+            loc='upper left', fontsize=15)
+for text in l.get_texts():
+    s = str(text)
+    if s[18] == '5':
+        text.set_color('tab:brown')
+    else:
+        text.set_color('tab:green')
