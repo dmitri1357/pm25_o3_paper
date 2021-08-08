@@ -4,5 +4,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt   
 from mpl_toolkits.basemap import Basemap
+import h5py
 
+import matplotlib as mpl
+mpl.rc('font',family='Arial')
 
+# the file 'som_12.mat' is a 12-node SOM (3x4) trained on 500-hPa 
+# geopotential height anomalies over western N. America (1979-2020; July-September)
+f = h5py.File('som_12.mat','r')
+som = f.get('som') 
+som = np.squeeze(np.array(som))
