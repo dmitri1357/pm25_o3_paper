@@ -1,2 +1,215 @@
 #!/usr/bin/env python3
 
+import numpy as np
+import matplotlib.pyplot as plt   
+from mpl_toolkits.basemap import Basemap
+
+# these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
+# downloaded from Zenodo.org (see README for details)
+# dimension 1: 19 latitudes from 31-49N
+# dimension 2: 24 longitudes from 126-103W
+# dimension 3: 7300 days from 1 OCT 2000 - 30 SEP 2020
+pm_west = np.load('pm_west.npy') # average daily concentrations
+oz_west = np.load('oz_west.npy') # MDA8 concentrations
+
+pm_west = np.reshape(pm_west,(456,7300)) # vectorize lats & lons
+oz_west = np.reshape(oz_west,(456,7300)) # vectorize lats & lons
+
+# plot A
+
+pm_avgs1 = np.empty(456)
+for k in range(456):
+    cell = pm_west[k,:]
+    if np.nanmax(cell) > 0:
+        splits = np.split(cell,20)
+        vals1 = []
+        vals2 = []
+        vals3 = []
+        vals4 = []
+        for j in range(10):
+            yr = splits[j]
+            s1 = yr[:92]
+            s2 = yr[92:182]
+            s3 = yr[182:273]
+            s4 = yr[273:]
+            vals1.extend(s1)
+            vals2.extend(s2)
+            vals3.extend(s3)
+            vals4.extend(s4)
+        mean1 = np.nanmean(vals1)
+        mean2 = np.nanmean(vals2)
+        mean3 = np.nanmean(vals3)
+        mean4 = np.nanmean(vals4)
+        meanlist = [mean1,mean2,mean3,mean4]
+        meanlist = np.array(meanlist)
+        pm_avgs1[k] = np.argmax(meanlist)
+    else:
+        pm_avgs1[k] = 'nan'
+
+lat = np.arange(31,50,1)
+lon = np.arange(-126,-102,1)
+lon, lat = np.meshgrid(lon, lat)
+
+var = np.reshape(pm_avgs1,(19,24))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True,
+             cmap = plt.cm.get_cmap('jet',4))
+plt.title('(A) Season of peak $\mathregular{PM_{2.5}}$ concentration (2001-2010)', size=10)
+plt.clim(0,3)
+
+# plot B
+
+pm_avgs2 = np.empty(456)
+for k in range(456):
+    cell = pm_west[k,:]
+    if np.nanmax(cell) > 0:
+        splits = np.split(cell,20)
+        vals1 = []
+        vals2 = []
+        vals3 = []
+        vals4 = []
+        for j in np.arange(10,20,1):
+            yr = splits[j]
+            s1 = yr[:92]
+            s2 = yr[92:182]
+            s3 = yr[182:273]
+            s4 = yr[273:]
+            vals1.extend(s1)
+            vals2.extend(s2)
+            vals3.extend(s3)
+            vals4.extend(s4)
+        mean1 = np.nanmean(vals1)
+        mean2 = np.nanmean(vals2)
+        mean3 = np.nanmean(vals3)
+        mean4 = np.nanmean(vals4)
+        meanlist = [mean1,mean2,mean3,mean4]
+        meanlist = np.array(meanlist)
+        pm_avgs2[k] = np.argmax(meanlist)
+    else:
+        pm_avgs2[k] = 'nan'
+
+var = np.reshape(pm_avgs2,(19,24))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True,
+             cmap = plt.cm.get_cmap('jet',4))
+plt.title('(B) Season of peak $\mathregular{PM_{2.5}}$ concentration (2011-2020)', size=10)
+plt.clim(0,3)
+
+# plot C
+
+oz_avgs1 = np.empty(456)
+for k in range(456):
+    cell = oz_west[k,:]
+    if np.nanmax(cell) > 0:
+        splits = np.split(cell,20)
+        vals1 = []
+        vals2 = []
+        vals3 = []
+        vals4 = []
+        for j in range(10):
+            yr = splits[j]
+            s1 = yr[:92]
+            s2 = yr[92:182]
+            s3 = yr[182:273]
+            s4 = yr[273:]
+            vals1.extend(s1)
+            vals2.extend(s2)
+            vals3.extend(s3)
+            vals4.extend(s4)
+        mean1 = np.nanmean(vals1)
+        mean2 = np.nanmean(vals2)
+        mean3 = np.nanmean(vals3)
+        mean4 = np.nanmean(vals4)
+        meanlist = [mean1,mean2,mean3,mean4]
+        meanlist = np.array(meanlist)
+        oz_avgs1[k] = np.argmax(meanlist)
+    else:
+        oz_avgs1[k] = 'nan'
+
+var = np.reshape(oz_avgs1,(19,24))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True,
+             cmap = plt.cm.get_cmap('jet',4))
+plt.title('(C) Season of peak ozone concentration (2001-2010)', size=10)
+plt.clim(0,3)
+
+# plot D
+
+oz_avgs2 = np.empty(456)
+for k in range(456):
+    cell = oz_west[k,:]
+    if np.nanmax(cell) > 0:
+        splits = np.split(cell,20)
+        vals1 = []
+        vals2 = []
+        vals3 = []
+        vals4 = []
+        for j in np.arange(10,20,1):
+            yr = splits[j]
+            s1 = yr[:92]
+            s2 = yr[92:182]
+            s3 = yr[182:273]
+            s4 = yr[273:]
+            vals1.extend(s1)
+            vals2.extend(s2)
+            vals3.extend(s3)
+            vals4.extend(s4)
+        mean1 = np.nanmean(vals1)
+        mean2 = np.nanmean(vals2)
+        mean3 = np.nanmean(vals3)
+        mean4 = np.nanmean(vals4)
+        meanlist = [mean1,mean2,mean3,mean4]
+        meanlist = np.array(meanlist)
+        oz_avgs2[k] = np.argmax(meanlist)
+    else:
+        oz_avgs2[k] = 'nan'
+
+var = np.reshape(oz_avgs2,(19,24))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True,
+             cmap = plt.cm.get_cmap('jet',4))
+plt.title('(D) Season of peak ozone concentration (2011-2020)', size=10)
+plt.clim(0,3)
+
+# code to make colorbar
+var = np.reshape(oz_avgs2,(19,24))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True,
+             cmap = plt.cm.get_cmap('jet',4))
+plt.title('(D) Season of peak ozone concentration (2011-2020)', size=10)
+cb = plt.colorbar(orientation='horizontal')
+cb.ax.tick_params(labelsize=13)
+cb.set_ticks(np.array([0.75,1.5,2.25,3])-(0.75/2))
+cb.set_ticklabels(['OCT-DEC','JAN-MAR','APR-JUN','JUL-SEP'])
+plt.clim(0,3)
+
