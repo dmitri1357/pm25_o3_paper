@@ -1,2 +1,76 @@
 #!/usr/bin/env python3
 
+import pandas as pd
+import numpy as np
+from collections import Counter     
+import matplotlib.pyplot as plt   
+
+import matplotlib as mpl
+mpl.rc('font',family='Arial')
+
+# these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
+# downloaded from Zenodo.org (see README for details)
+# dimension 1: 19 latitudes from 31-49N
+# dimension 2: 24 longitudes from 126-103W
+# dimension 3: 7300 days from 1 OCT 2000 - 30 SEP 2020
+pm_west = np.load('pm_west.npy') # average daily concentrations
+oz_west = np.load('oz_west.npy') # MDA8 concentrations
+
+pm_west = np.reshape(pm_west,(456,7300)) # vectorize lats & lons
+oz_west = np.reshape(oz_west,(456,7300)) # vectorize lats & lons
+
+perc = 90
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+days1 = []
+for k in range(20):
+    step = year_start[k]
+    annual = np.arange(step,step+365,1)
+    dates1 = pd.date_range(start='10/1/{}'.format(years[k]), end='2/28/{}'.format(years[k+1]))
+    dates2 = pd.date_range(start='3/1/{}'.format(years[k+1]), end='9/30/{}'.format(years[k+1]))
+    dates3 = np.hstack([dates1,dates2])
+    for j in range(456):
+        cell = pm_west[j,:]
+        if np.nanmax(cell) > 0:
+            pm1 = pm_west[j,annual]
+            oz1 = oz_west[j,annual]
+            y1 = np.nanpercentile(pm1,perc)
+            x1 = np.where(pm1 > y1, 1, 0)
+            y2 = np.nanpercentile(oz1,perc)
+            x2 = np.where(oz1 > y2, 1, 0)
+            df = pd.DataFrame({'date':dates3,'p1':x1,'o1':x2})
+            idx = df.date[(df.p1==1)&(df.o1==1)]
+            days1.extend(idx)
+
+count1 = Counter(days1)
+items = sorted(count1.items())
+
+vals = []
+for k in range(len(count1)):
+    vals.append(items[k][1])
+vals = (np.array(vals)/375) * 100
+
+keys = []
+for k in range(len(count1)):
+    keys.append(items[k][0])
+    
+count_df = pd.DataFrame({'date':keys,'percentage':vals})
+count_df['month'] = pd.to_datetime(count_df['date']).dt.month 
+count_df['year'] = pd.to_datetime(count_df['date']).dt.year
+count_df['day'] = pd.to_datetime(count_df['date']).dt.day 
+
+count_subs = count_df[count_df['percentage'] >= 25]
+mo_list = list(count_subs.month)
+mo_count = Counter(mo_list)
+vals1 = [0,0,0,1,1,1,8,54,10,0,0,0] # extracted from 'mo_count' dictionary
+months = np.arange(1,13,1)
+
+fig = plt.figure(figsize=(8,6))
+plt.bar(months, height=vals1, color='cornflowerblue')
+plt.xticks(np.arange(1,13,1), ('1','2','3','4','5','6','7','8','9',
+           '10','11','12'), fontsize = 15)
+plt.yticks(np.arange(0,65,5), fontsize = 15)
+plt.ylabel('# of days', fontsize = 17)
+plt.xlabel('Month', fontsize = 17)
+plt.title('Widespread co-occurrence days by month (2001-2020)', fontsize = 17)
+
