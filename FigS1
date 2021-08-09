@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt   
 from mpl_toolkits.basemap import Basemap
 
+import matplotlib as mpl
+mpl.rc('font',family='Arial')
+
 # these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
 # downloaded from Zenodo.org (see README for details)
 # dimension 1: 19 latitudes from 31-49N
