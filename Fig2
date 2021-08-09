@@ -3,7 +3,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt   
-from mpl_toolkits.basemap import Basemap
 from itertools import compress
 from collections import Counter
 from scipy import stats
