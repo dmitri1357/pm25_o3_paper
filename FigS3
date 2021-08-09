@@ -1,2 +1,192 @@
 #!/usr/bin/env python3
 
+import pandas as pd
+import numpy as np
+from collections import Counter     
+import matplotlib.pyplot as plt   
+
+import matplotlib as mpl
+mpl.rc('font',family='Arial')
+
+# these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
+# downloaded from Zenodo.org (see README for details)
+# dimension 1: 19 latitudes from 31-49N
+# dimension 2: 24 longitudes from 126-103W
+# dimension 3: 7300 days from 1 OCT 2000 - 30 SEP 2020
+pm_west = np.load('pm_west.npy') # average daily concentrations
+oz_west = np.load('oz_west.npy') # MDA8 concentrations
+
+pm_west = np.reshape(pm_west,(456,7300)) # vectorize lats & lons
+oz_west = np.reshape(oz_west,(456,7300)) # vectorize lats & lons
+
+perc = 90
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+days1 = []
+for k in range(20):
+    step = year_start[k]
+    annual = np.arange(step,step+365,1)
+    dates1 = pd.date_range(start='10/1/{}'.format(years[k]), end='2/28/{}'.format(years[k+1]))
+    dates2 = pd.date_range(start='3/1/{}'.format(years[k+1]), end='9/30/{}'.format(years[k+1]))
+    dates3 = np.hstack([dates1,dates2])
+    for j in range(456):
+        cell = pm_west[j,:]
+        if np.nanmax(cell) > 0:
+            pm1 = pm_west[j,annual]
+            oz1 = oz_west[j,annual]
+            y1 = np.nanpercentile(pm1,perc)
+            x1 = np.where(pm1 > y1, 1, 0)
+            y2 = np.nanpercentile(oz1,perc)
+            x2 = np.where(oz1 > y2, 1, 0)
+            df = pd.DataFrame({'date':dates3,'p1':x1,'o1':x2})
+            idx = df.date[(df.p1==1)&(df.o1==1)]
+            days1.extend(idx)
+
+count1 = Counter(days1)
+items = sorted(count1.items())
+
+vals = []
+for k in range(len(count1)):
+    vals.append(items[k][1])
+vals = (np.array(vals)/375) * 100
+
+keys = []
+for k in range(len(count1)):
+    keys.append(items[k][0])
+    
+dates = pd.date_range(start='10/1/2000', end='9/30/2020')
+dates = dates[~((dates.month == 2) & (dates.day == 29))]
+
+co_occur = np.zeros(7300)
+n = -1
+for k in range(7300):
+    day = dates[k]
+    if day in keys:
+        n = n + 1
+        co_occur[k] = vals[n]
+    else:
+        pass
+      
+perc = np.empty(7300)
+for k in range(7300):
+    day = co_occur[k]
+    if day >= 25: # defining at >25% of western US
+        perc[k] = 1
+    else:
+        perc[k] = 0
+
+x1 = pd.Series(perc)
+only = x1[x1 == 1]
+occurs1 = dates[only.index] 
+occurs1 = pd.DataFrame(occurs1).rename(columns={0:'Date'})
+
+occurs1['year'] = occurs1['Date'].dt.year # extract years
+occurs1['month'] = pd.to_datetime(occurs1.Date).dt.month
+occurs1 = occurs1[~(occurs1.month == 1)]
+occurs1 = occurs1[~(occurs1.month == 2)]
+occurs1 = occurs1[~(occurs1.month == 3)]
+occurs1 = occurs1[~(occurs1.month == 4)]
+occurs1 = occurs1[~(occurs1.month == 5)]
+occurs1 = occurs1[~(occurs1.month == 6)]
+occurs1 = occurs1[~(occurs1.month == 10)]
+occurs1 = occurs1[~(occurs1.month == 11)]
+occurs1 = occurs1[~(occurs1.month == 12)]
+counts1 = Counter(occurs1.year)
+year_counts1 = list(counts1.values())
+occurs1.year.unique()
+year_counts1.insert(0,0)
+year_counts1.insert(1,0)
+year_counts1.insert(3,0)
+year_counts1.insert(4,0)
+year_counts1.insert(8,0)
+year_counts1.insert(9,0)
+year_counts1.insert(18,0)
+
+perc = np.empty(7300)
+for k in range(7300):
+    day = co_occur[k]
+    if day >= 20: # defining at >20% of western US
+        perc[k] = 1
+    else:
+        perc[k] = 0
+
+x1 = pd.Series(perc)
+only = x1[x1 == 1]
+occurs2 = dates[only.index] 
+occurs2 = pd.DataFrame(occurs2).rename(columns={0:'Date'})
+
+occurs2['year'] = occurs2['Date'].dt.year # extract years
+occurs2['month'] = pd.to_datetime(occurs2.Date).dt.month
+occurs2 = occurs2[~(occurs2.month == 1)]
+occurs2 = occurs2[~(occurs2.month == 2)]
+occurs2 = occurs2[~(occurs2.month == 3)]
+occurs2 = occurs2[~(occurs2.month == 4)]
+occurs2 = occurs2[~(occurs2.month == 5)]
+occurs2 = occurs2[~(occurs2.month == 6)]
+occurs2 = occurs2[~(occurs2.month == 10)]
+occurs2 = occurs2[~(occurs2.month == 11)]
+occurs2 = occurs2[~(occurs2.month == 12)]
+counts2 = Counter(occurs2.year)
+year_counts2 = list(counts2.values())
+occurs2.year.unique()
+year_counts2.insert(0,0)
+year_counts2.insert(1,0)
+year_counts2.insert(3,0)
+year_counts2.insert(8,0)
+year_counts2.insert(9,0)
+year_counts2.insert(18,0)
+
+perc = np.empty(7300)
+for k in range(7300):
+    day = co_occur[k]
+    if day >= 15: # defining at >15% of western US
+        perc[k] = 1
+    else:
+        perc[k] = 0
+
+x1 = pd.Series(perc)
+only = x1[x1 == 1]
+occurs3 = dates[only.index]
+occurs3 = pd.DataFrame(occurs3).rename(columns={0:'Date'})
+
+occurs3['year'] = occurs3['Date'].dt.year # extract years
+occurs3['month'] = pd.to_datetime(occurs3.Date).dt.month
+occurs3 = occurs3[~(occurs3.month == 1)]
+occurs3 = occurs3[~(occurs3.month == 2)]
+occurs3 = occurs3[~(occurs3.month == 3)]
+occurs3 = occurs3[~(occurs3.month == 4)]
+occurs3 = occurs3[~(occurs3.month == 5)]
+occurs3 = occurs3[~(occurs3.month == 6)]
+occurs3 = occurs3[~(occurs3.month == 10)]
+occurs3 = occurs3[~(occurs3.month == 11)]
+occurs3 = occurs3[~(occurs3.month == 12)]
+counts3 = Counter(occurs3.year)
+year_counts3 = list(counts3.values())
+occurs3.year.unique()
+year_counts3.insert(8,0)
+year_counts3.insert(18,0)
+
+fig = plt.figure(figsize=(8,6))
+plt.plot(year_counts3,'-o', color='tab:green')
+plt.plot(year_counts2,'-o', color='tab:brown')
+plt.plot(year_counts1,'-o', color='tab:blue')
+plt.grid(linewidth=0.5)
+plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
+           '','2010','','','','','2015','','','','','2020'), fontsize = 15)
+plt.yticks(np.arange(0,35,5), fontsize=15)
+plt.ylabel('# of days', fontsize = 17)
+plt.xlabel('Year', fontsize = 17)
+plt.title('Widespread co-occurrence days', fontsize = 20)
+l = plt.legend(['$\geq$15% (+0.80 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.005)',
+            '$\geq$20% (+0.72 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.001)',
+            '$\geq$25% (+0.62 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.002)'], 
+            loc='upper left', fontsize=15)
+for text in l.get_texts():
+    s = str(text)
+    if s[19] == '1':
+        text.set_color('tab:green')
+    elif s[20] == '0':
+        text.set_color('tab:brown')
+    else:
+        text.set_color('tab:blue')
+
