@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from itertools import compress
+from scipy import stats
 
 import matplotlib as mpl
 mpl.rc('font',family='Arial')
@@ -12,3 +13,138 @@ mpl.rc('font',family='Arial')
 # load MODIS burned area data
 bas = np.load('baf_sums.npy')
 
+# these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
+# downloaded from Zenodo.org (see README for details)
+# dimension 1: 19 latitudes from 31-49N
+# dimension 2: 24 longitudes from 126-103W
+# dimension 3: 7300 days from 1 OCT 2000 - 30 SEP 2020
+pm_west = np.load('pm_west.npy') # average daily concentrations
+oz_west = np.load('oz_west.npy') # MDA8 concentrations
+
+pm_west = np.reshape(pm_west,(456,7300)) # vectorize lats & lons
+oz_west = np.reshape(oz_west,(456,7300)) # vectorize lats & lons
+
+year_start = np.arange(0,7300,365)
+all_matches = np.empty([456,3660])
+all_matches1 = np.empty([456,7300])
+for j in range(456):
+    cell = pm_west[j,:]
+    if np.nanmax(cell) > 0:
+        seas_days = np.empty(365)
+        fulldays = []
+        fulldays1 = []
+        for k in range(20):
+            step = year_start[k]
+            sea = np.arange(step,step+365,1)
+            pm2 = pm_west[j,sea]
+            oz2 = oz_west[j,sea]
+            y3 = np.nanpercentile(pm2,90)
+            x3 = np.where(pm2 > y3)[0]
+            y4 = np.nanpercentile(oz2,90)
+            x4 = np.where(oz2 > y4)[0]
+            match2 = [x4[i] in x3 for i in range(len(x4))]
+            day_idx2 = list(compress(x4,match2))
+            for m in range(365):
+                if m not in day_idx2:
+                    seas_days[m] = 0
+                else:
+                    seas_days[m] = 1
+            seas_days1 = seas_days[182:]
+            fulldays.extend(list(seas_days1))
+            fulldays1.extend(list(seas_days))
+        all_matches[j,:] = fulldays
+        all_matches1[j,:] = fulldays1
+    else:
+        all_matches[j,:] = ['nan']
+        all_matches1[j,:] = ['nan']   
+        
+match_trunc = all_matches1[:,822:]
+all_mats = np.nansum(match_trunc,axis=0)
+all_mats = (all_mats/375)*100
+maxs = np.flipud(np.argsort(all_mats))
+
+# this code extracts co-occurrence extent peaks from non-overlapping
+# 15-day windows between 2003-2020
+day_accum = []
+for k in range(6478):
+    day = maxs[k]
+    window = list(np.arange(day-7,day+8,1))
+    i, j = window[0], window[-1]
+    res = any(ele >= i and ele <= j for ele in day_accum)
+    if res == 0:
+        day_accum.append(day)
+day_accum = np.array(day_accum)
+
+dates = pd.date_range(start='1/1/2003', end='9/30/2020')
+dates = dates[~((dates.month == 2) & (dates.day == 29))]
+df = pd.DataFrame({'idx':np.arange(0,6478,1),'val':all_mats,'date':dates})
+df = df[df['idx'].isin(day_accum)].reset_index()
+df['day'] = df.date.dt.date
+df1 = df.sort_values(by=['val'], ascending=False).reset_index()
+df1['month'] = df1.date.dt.month
+df1 = df1[~(df1.month == 10)]
+df1 = df1[~(df1.month == 11)]
+df1 = df1[~(df1.month == 12)]
+df1 = df1[~(df1.month == 1)]
+df1 = df1[~(df1.month == 2)]
+df1 = df1[~(df1.month == 3)]
+df1 = df1[~(df1.month == 4)]
+df1 = df1[~(df1.month == 5)]
+df1 = df1[~(df1.month == 6)]
+
+df1.drop(columns='level_0',inplace=True)
+df1 = df1.reset_index()
+
+# load standardized anomalies of Tmax
+tmax_z = np.load('tmax_z_20032020.npy')
+tvec = np.reshape(tmax_z,(6336,6570))
+tvec = tvec[:,:6478]
+
+# this code extracts the daily percentage of the study area experiencing
+# positive Tmax anomalies exceeding 1 standard deviation
+counts = []
+for k in range(6478):
+    day = tvec[:,k]
+    count = np.size(np.where(day >= 1)) # '1' is for one standard deviation
+    counts.append((count/6336)*100)
+counts = np.array(counts)
+
+stats.pearsonr(avgs,vals) # calculate Pearson correlation between burned area and co-occurrence extent
+stats.pearsonr(max_t,vals) # calculate Pearson correlation between +Tmax extent and co-occurrence extent
+
+# plot A
+
+fig = plt.figure(figsize=(8,6))
+ax = sns.regplot(avgs, vals, ci=None, scatter_kws={'s':75}, color='tab:brown')
+plt.scatter(avgs[:5],vals[:5],color='y') # color the 5 most widespread days differently
+ax.set_xlabel('Max daily burned area (Sq. Km.)',size=16)
+ax.set_ylabel('Co-occurrence extent - % of western US',size=16)
+ax.set_yticks(np.arange(25,75,5))
+ax.set_xticks(np.arange(0,1201,100))
+ax.tick_params(labelsize=13)
+plt.title('(A) Burned area vs. co-occurrence spatial extent', size=17)
+plt.grid(linewidth=0.5)
+#ax.axhline(y=25, linestyle='--', color='k')
+l = plt.legend(['$\it{r}$ = 0.74, $\it{p}$ < 0.001)'], 
+            loc='upper left', fontsize=15)
+for text in l.get_texts():
+    text.set_color('tab:brown')
+    
+# plot B
+
+fig = plt.figure(figsize=(8,6))
+ax = sns.regplot(max_t, vals, ci=None, scatter_kws={'s':75}, color='orangered')
+plt.scatter(max_t[:5],vals[:5],color='y') # color the 5 most widespread days differently
+ax.set_xlabel('% of western US with +Tmax anomalies >1$\sigma$',size=16)
+ax.set_ylabel('Co-occurrence extent - % of western US',size=16)
+ax.set_yticks(np.arange(25,75,5))
+ax.set_xticks(np.arange(0,90,5))
+ax.tick_params(labelsize=13)
+plt.title('(B) Tmax anomalies vs. co-occurrence spatial extent', size=17)
+plt.grid(linewidth=0.5)
+l = plt.legend(['$\it{r}$ = 0.54, $\it{p}$ = 0.01)'], 
+            loc='upper left', fontsize=15)
+for text in l.get_texts():
+    text.set_color('orangered')
+    
+    
