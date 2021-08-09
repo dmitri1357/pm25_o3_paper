@@ -1,2 +1,297 @@
 #!/usr/bin/env python3
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt   
+from mpl_toolkits.basemap import Basemap
+from itertools import compress
+from scipy.ndimage import gaussian_filter
+from dbfread import DBF
+
+import matplotlib as mpl
+mpl.rc('font',family='Arial')
+
+# plot A
+
+# these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
+# downloaded from Zenodo.org (see README for details)
+# dimension 1: 19 latitudes from 31-49N
+# dimension 2: 24 longitudes from 126-103W
+# dimension 3: 7300 days from 1 OCT 2000 - 30 SEP 2020
+pm_west = np.load('pm_west.npy') # average daily concentrations
+oz_west = np.load('oz_west.npy') # MDA8 concentrations
+
+pm_west = np.reshape(pm_west,(456,7300)) # vectorize lats & lons
+oz_west = np.reshape(oz_west,(456,7300)) # vectorize lats & lons
+
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+all_matches = np.empty([456,3660])
+all_matches1 = np.empty([456,7300])
+for j in range(456):
+    cell = pm_west[j,:]
+    if np.nanmax(cell) > 0:
+        seas_days = np.empty(365)
+        fulldays = []
+        fulldays1 = []
+        for k in range(20):
+            step = year_start[k]
+            sea = np.arange(step,step+365,1)
+            pm2 = pm_west[j,sea]
+            oz2 = oz_west[j,sea]
+            y3 = np.nanpercentile(pm2,90)
+            x3 = np.where(pm2 > y3)[0]
+            y4 = np.nanpercentile(oz2,90)
+            x4 = np.where(oz2 > y4)[0]
+            match2 = [x4[i] in x3 for i in range(len(x4))]
+            day_idx2 = list(compress(x4,match2))
+            for m in range(365):
+                if m not in day_idx2:
+                    seas_days[m] = 0
+                else:
+                    seas_days[m] = 1
+            seas_days1 = seas_days[182:]
+            fulldays.extend(list(seas_days1))
+            fulldays1.extend(list(seas_days))
+        all_matches[j,:] = fulldays
+        all_matches1[j,:] = fulldays1
+    else:
+        all_matches[j,:] = ['nan']
+        all_matches1[j,:] = ['nan']   
+
+all_matches2 = np.empty([456,1840])
+idx1 = np.arange(0,3660,183)
+idx2 = np.arange(0,1841,92)
+for j in range(456):
+    cell = pm_west[j,:]
+    for k in range(20):
+        step1 = idx1[k]
+        step2 = idx2[k]
+        if np.nanmax(cell) > 0:
+            chunk = all_matches[j,step1+91:step1+183]
+            all_matches2[j,step2:step2+92] = chunk
+        else:
+            all_matches2[j,step2:step2+92] = ['nan']
+        
+# array of wildfire burned area data from MODIS
+baf_sums = np.load('baf_sums.npy')
+
+var2020 = baf_sums[6431:6446] # subset to August 15-29, 2020
+var2020_1 = all_matches2[:,1793:1808]
+var2020_1 = np.nansum(var2020_1, axis=0)
+var2020_1 = (var2020_1/375) * 100
+
+# z-scores of Tmax from ERA5 
+tmax_z = np.load('tmax_z_20032020.npy')
+tvec = np.reshape(tmax_z,(6336,6570))
+tvec = tvec[:,:6478]
+
+counts = []
+for k in range(6478):
+    day = tvec[:,k]
+    count = np.size(np.where(day >= 1))
+    counts.append((count/6336)*100)
+counts = np.array(counts)
+
+count2020 = counts[6431:6446] # subset to August 15-29, 2020
+
+# the file 'som_12.mat' is a 12-node SOM (3x4) trained on 500-hPa 
+# geopotential height anomalies over western N. America (1979-2020; July-September)
+f = h5py.File('som_12.mat','r')
+som = f.get('som') # Get a certain dataset
+som = np.squeeze(np.array(som))
+som_trunc = som[2024:]
+
+som2020 = som_trunc[1793:1808] # subset to August 15-29, 2020
+
+fig, ax1 = plt.subplots(figsize=(10,6))
+color = 'tab:brown'
+ax1.set_ylabel('Burned area (sq. km.)', color=color, fontsize=17)
+ax1.set_yticks(np.arange(0,1401,100))
+ax1.set_ylim(top=1400)
+ax1.set_xticks(np.arange(0,15,1))
+ax1.set_xticklabels(['15-AUG','','17-AUG','','19-AUG','','21-AUG','','23-AUG','','25-AUG',
+                     '','27-AUG','','29-AUG'], fontsize = 14)
+ax1.plot(var2020, '--D', color=color)
+ax1.tick_params(axis='y', labelcolor=color)
+ax1.tick_params(axis='y', labelsize=12)
+ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+color = 'tab:blue'
+ax2.set_ylabel('% of western US gridcells', color=color, fontsize=17)  
+ax2.set_yticks(np.arange(0,110,10))
+ax2.set_ylim(top=100)
+ax2.plot(var2020_1, '--D', color=color)
+ax2.bar(np.arange(0,15,1), height=count2020, color=color, width=0.3, alpha=0.3)
+for i in np.arange(0,15,1):
+    node = som2020[i]
+    j = var2020_1[i]
+    ax2.annotate("{}".format(int(node)), xy=(i, j), xytext=(0,10), size='18',
+                 textcoords='offset points', ha='center')
+ax2.tick_params(axis='y', labelcolor=color)
+ax2.tick_params(axis='y', labelsize=12)
+
+plt.title('(A) Episode of 15-29 August, 2020', fontsize = 20)
+
+# plot B
+
+mat2020 = all_matches2[:,1793:1808]
+sum2020 = np.nansum(mat2020,axis=1)
+
+for k in range(456):
+     cell = pm_west[k,:]
+     if np.nanmax(cell) > 0:
+         sum2020[k] = sum2020[k]
+     else:
+         sum2020[k] = 'nan'       
+var = np.reshape(sum2020, (19,24))
+
+# 'counts.csv' is a dataset which contains the number of HMS-identified
+# smoke days in each grid cell during August 15-29, 2020
+counts_df = pd.read_csv('counts.csv')
+hms_counts = list(counts_df.Freq)
+hms_counts.insert(0,0)
+hms_counts.insert(24,0)
+hms_counts.insert(49,0)
+
+var = np.reshape(hms_counts,(19,24))
+var = np.flipud(var)
+var2 = gaussian_filter(var, sigma=0.2)
+
+# dataset of MODIS 1-km thermal anomalies/active fire locations
+table = DBF('fire_archive_M6_183653.dbf', load=True)
+
+lats = []
+lons = []
+conf = []
+for k in range(len(table)):
+    lats.append(table.records[k]['LATITUDE'])
+    lons.append(table.records[k]['LONGITUDE'])
+    conf.append(table.records[k]['CONFIDENCE'])
+
+df = pd.DataFrame({'lat':lats,'lon':lons,'confidence':conf})
+df = df[df['lat'] <= 49]
+df = df[df['confidence'] >= 95]
+
+gridlats = np.arange(30,50,1)
+gridlons = np.arange(-135,-99,1)
+gridlon, gridlat = np.meshgrid(gridlons, gridlats)
+latvec = np.reshape(gridlat,720)
+lonvec = np.reshape(gridlon,720)
+counts = []
+for ii in zip(latvec,lonvec):
+    coords = tuple(ii)
+    df1 = df[(df['lat'] >= coords[0])&(df['lat'] <= coords[0]+1)]
+    df2 = df1[(df1['lon'] >= coords[1])&(df1['lon'] <= coords[1]+1)]
+    counts.append(df2.shape[0])
+counts1 = np.where(np.array(counts)>=50, 1, 0)
+
+sum_matrix = np.reshape(sum2020, (19,24))
+counts_matrix = np.reshape(counts1, (20,36))
+
+annex1 = np.full((11,24), 8)
+cat1 = np.concatenate([sum_matrix,annex1], axis=0)
+annex2 = np.full((30,12), 8)
+cat2 = np.concatenate([annex2,cat1], axis=1)
+catvec = np.reshape(cat2,1080)
+for k in range(1080):
+    if catvec[k] == 8:
+        catvec[k] = 'nan'
+var = np.reshape(catvec,(30,36))
+
+annex1 = np.full((6,36), 0.1)
+cat1 = np.concatenate([annex1,counts_matrix], axis=0)
+catvec1 = np.reshape(cat1,936)
+for k in range(936):
+    if catvec1[k] == 0.1:
+        catvec1[k] = 'nan'
+var1 = np.reshape(catvec1,(26,36))
+
+lat = np.arange(24,50,1)
+lon = np.arange(-135,-99,1)
+lon, lat = np.meshgrid(lon, lat)
+
+latvec = np.reshape(lat,936)
+lonvec = np.reshape(lon,936)
+sub_df = pd.DataFrame({'lat':latvec,'lon':lonvec,'vals':catvec1})
+sub1 = sub_df[sub_df['vals'] == 1]
+
+lats1 = list(sub1.lat)
+lons1 = list(sub1.lon)
+lats1 = [lats1[j] + 0.5 for j in range(len(lats1))] 
+lons1 = [lons1[j] + 0.5 for j in range(len(lons1))]   
+
+# reset 'var' variable
+var = np.reshape(sum2020, (19,24))
+
+lat = np.arange(31,50,1)
+lon = np.arange(-126,-102,1)
+lon, lat = np.meshgrid(lon, lat)
+plt.figure(figsize=(10, 8))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=1,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True,
+             cmap = plt.cm.get_cmap('Reds',16))
+plt.title('(B) Co-occurrences/Fire Loc./Smoke', size=22)
+plt.clim(0,15)
+x, y = m(lon, lat)
+clevs1 = np.arange(1,16,1)
+csl = m.contour(x, y, var2, clevs1, cmap='Blues') 
+plt.clabel(csl, fmt = '%d', inline = True, fontsize = 18, colors='b')
+m.scatter(lons1, lats1, latlon=True, 
+          marker='D', c='k', s=50)  
+
+# plot C
+
+tmax_anoms_amjjas = np.load('tmax_anoms_amjjas1.npy')
+idx = np.arange(136,7686,183) # with 2020 in mind, starting Aug 15
+temp_chunks = np.empty([121,121,42])
+for k in range(42):
+    step = idx[k]
+    chunk = tmax_anoms_amjjas[:,:,step:step+15]
+    temp_chunks[:,:,k] = np.mean(chunk,axis=2)
+val_vec = np.reshape(temp_chunks,(14641,42))   
+
+ranks2020 = np.empty(14641)
+for k in range(14641):
+    cell = val_vec[k,:]
+    ranks = np.flipud(np.argsort(cell))
+    loc = np.where(ranks == 41)
+    ranks2020[k] = loc[0] + 1
+ranks2020 = np.where(ranks2020 > 5, 6, ranks2020)
+ranks2020_mat = np.reshape(ranks2020,(121,121)) * -1
+
+var = ranks2020_mat 
+
+z500_anoms_jas = np.load('z500_anoms_jas.npy')
+z500 = z500_anoms_jas[:,:,3817:3832]
+mean = np.mean(z500, axis=2)
+var1 = np.reshape(mean, (121,121))
+
+lat = np.arange(25,55.25,0.25)
+lon = np.arange(-130,-99.75,0.25)
+lon, lat = np.meshgrid(lon, lat)
+
+fig = plt.figure(figsize=(10,8))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=1,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True, 
+             cmap = plt.cm.get_cmap('OrRd',6))
+plt.title('(C) GPH Anomalies/Tmax Rank', size=22)
+plt.clim(-6,-1)
+x, y = m(lon, lat)
+clevs1 = [-120,-100,-80,-60,-40,-20,0,20,40,60,80,100,120]
+csl = m.contour(x, y, var1, clevs1, colors = 'tab:blue', linewidths=2.5)
+plt.clabel(csl, fmt = '%d {}'.format('m'), inline = True, fontsize = 19, colors='tab:blue')
+
+
+
