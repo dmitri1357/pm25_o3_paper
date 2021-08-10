@@ -1,2 +1,115 @@
 #!/usr/bin/env python3
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt   
+from mpl_toolkits.basemap import Basemap
+from itertools import compress
+from collections import Counter
+
+import matplotlib as mpl
+mpl.rc('font',family='Arial')
+
+# these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
+# downloaded from Zenodo.org (see README for details)
+# dimension 1: 19 latitudes from 31-49N
+# dimension 2: 24 longitudes from 126-103W
+# dimension 3: 7300 days from 1 OCT 2000 - 30 SEP 2020
+pm_west = np.load('pm_west.npy') # average daily concentrations
+oz_west = np.load('oz_west.npy') # MDA8 concentrations
+
+pm_west = np.reshape(pm_west,(456,7300)) # vectorize lats & lons
+oz_west = np.reshape(oz_west,(456,7300)) # vectorize lats & lons
+
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+all_matches = np.empty([456,3660])
+all_matches1 = np.empty([456,7300])
+for j in range(456):
+    cell = pm_west[j,:]
+    if np.nanmax(cell) > 0:
+        seas_days = np.empty(365)
+        fulldays = []
+        fulldays1 = []
+        for k in range(20):
+            step = year_start[k]
+            sea = np.arange(step,step+365,1)
+            pm2 = pm_west[j,sea]
+            oz2 = oz_west[j,sea]
+            y3 = np.nanpercentile(pm2,90)
+            x3 = np.where(pm2 > y3)[0]
+            y4 = np.nanpercentile(oz2,90)
+            x4 = np.where(oz2 > y4)[0]
+            match2 = [x4[i] in x3 for i in range(len(x4))]
+            day_idx2 = list(compress(x4,match2))
+            for m in range(365):
+                if m not in day_idx2:
+                    seas_days[m] = 0
+                else:
+                    seas_days[m] = 1
+            seas_days1 = seas_days[182:]
+            fulldays.extend(list(seas_days1))
+            fulldays1.extend(list(seas_days))
+        all_matches[j,:] = fulldays
+        all_matches1[j,:] = fulldays1
+    else:
+        all_matches[j,:] = ['nan']
+        all_matches1[j,:] = ['nan']   
+        
+allco = np.nansum(all_matches1,axis=1)
+allco1 = allco/20
+
+for k in range(456):
+    cell = pm_west[k,:]
+    if np.nanmax(cell) > 0:
+        allco1[k] = allco1[k]
+    else:
+        allco1[k] = 'nan'
+
+exceed = np.empty(456)
+for k in range(456):
+    cell = pm_west[k,:]
+    if np.nanmax(cell) > 0:
+        cell1 = allco1[k]
+        if cell1 >= 3.65:
+            exceed[k] = 1
+        else:
+            exceed[k] = 0
+    else:
+        exceed[k] = 'nan'
+        
+lat = np.arange(31,50,1)
+lon = np.arange(-126,-102,1)
+lon, lat = np.meshgrid(lon, lat)
+
+latvec = np.reshape(lat,456)
+lonvec = np.reshape(lon,456)
+df = pd.DataFrame({'lat':latvec,'lon':lonvec,'idx':exceed})
+df = df[df['idx'] == 1]
+df = df[df['lon'] != -103]
+lons = list(df.lon)
+lats = list(df.lat)
+
+lats = [lats[j] + 0.5 for j in range(len(lats))] 
+lons = [lons[j] + 0.5 for j in range(len(lons))]       
+
+plt.figure(figsize=(10, 8))
+var = np.reshape(allco1, (19,24))
+m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+                width=2.5E6, height=2.5E6,
+                lat_0=40, lon_0=-114)
+m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+m.drawcoastlines(color='black')
+m.pcolormesh(lon, lat, var, latlon=True, 
+             cmap = plt.cm.get_cmap('YlOrRd',12))
+cb = plt.colorbar(ticks=np.arange(0,13,1))
+cb.ax.tick_params(labelsize=15)
+plt.title('Annual co-occurrence days (85.6%)', size=20)
+plt.clim(0,12)
+m.scatter(lons, lats, latlon=True, marker="o", s=15, c="black", alpha=1)  
+parallels = np.arange(30,51,5)
+m.drawparallels(parallels,labels=[1,0,0,0],fontsize=13)
+meridians = np.arange(-125,-99,5)
+m.drawmeridians(meridians,labels=[0,0,0,1],fontsize=13)
