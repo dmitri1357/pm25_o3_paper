@@ -109,6 +109,19 @@ for k in range(6478):
     counts.append((count/6336)*100)
 counts = np.array(counts)
 
+lag_length = 4
+windows = np.empty([21,lag_length+1]) # 21 independent widespread co-occurrence extent peaks
+windows_tmax = np.empty([21,lag_length+1]) 
+vals = []
+for k in range(21):
+    row = list(df1.values[k,:])
+    idx = row[2]
+    vals.append(np.round(row[3],1))
+    windows[k,:] = bas[idx-lag_length:idx+1]
+    windows_tmax[k,:] = counts[idx-lag_length:idx+1]
+avgs = np.max(windows,axis=1) 
+max_t = np.mean(windows_tmax,axis=1)
+
 stats.pearsonr(avgs,vals) # calculate Pearson correlation between burned area and co-occurrence extent
 stats.pearsonr(max_t,vals) # calculate Pearson correlation between +Tmax extent and co-occurrence extent
 
