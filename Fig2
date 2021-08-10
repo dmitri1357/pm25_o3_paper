@@ -21,8 +21,6 @@ oz_west = np.load('oz_west.npy') # MDA8 concentrations
 pm_west = np.reshape(pm_west,(456,7300)) # vectorize lats & lons
 oz_west = np.reshape(oz_west,(456,7300)) # vectorize lats & lons
 
-# plot A
-
 perc = 90
 years = np.arange(2000,2021,1)
 year_start = np.arange(0,7300,365)
@@ -153,90 +151,39 @@ for k in range(20):
 
 fig = plt.figure(figsize=(8,6))
 plt.grid(linewidth=0.5)
-plt.plot(year_counts, '-*', markersize=15, color='tab:brown')
-plt.plot(longest, '-o', markersize=7, color='tab:green')
+plt.plot(year_counts, '-o', markersize=7, color='orangered')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 15)
 plt.yticks(np.arange(0,30,5), fontsize=15)
-plt.ylabel('Number of days', fontsize = 17)
+plt.ylabel('# of total days', fontsize = 17)
 plt.xlabel('Year', fontsize = 17)
-plt.title('(A) Widespread co-occurrence days', fontsize = 17)
-l = plt.legend(['Total JAS days (+0.62 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.002)',
-            'Most consecutive days (+0.31 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.001)'], 
+plt.title('(A) Frequency of widespread co-occurrence days', fontsize = 17)
+l = plt.legend(['Total July-September days (+0.62 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.002)'], 
             loc='upper left', fontsize=13)
 for text in l.get_texts():
     s = str(text)
     if s[12] == 'T':
-        text.set_color('tab:brown')
-    else:
-        text.set_color('tab:green')
-        
+        text.set_color('orangered')
+plt.savefig('fig_2a.png',dpi=600)
+
 # plot B
 
-year_start = np.arange(0,7300,365)
-all_matches = np.empty([456,3660])
-all_matches1 = np.empty([456,7300])
-for j in range(456):
-    cell = pm_west[j,:]
-    if np.nanmax(cell) > 0:
-        seas_days = np.empty(365)
-        fulldays = []
-        fulldays1 = []
-        for k in range(20):
-            step = year_start[k]
-            sea = np.arange(step,step+365,1)
-            pm2 = pm_west[j,sea]
-            oz2 = oz_west[j,sea]
-            y3 = np.nanpercentile(pm2,90)
-            x3 = np.where(pm2 > y3)[0]
-            y4 = np.nanpercentile(oz2,90)
-            x4 = np.where(oz2 > y4)[0]
-            match2 = [x4[i] in x3 for i in range(len(x4))]
-            day_idx2 = list(compress(x4,match2))
-            for m in range(365):
-                if m not in day_idx2:
-                    seas_days[m] = 0
-                else:
-                    seas_days[m] = 1
-            seas_days1 = seas_days[182:]
-            fulldays.extend(list(seas_days1))
-            fulldays1.extend(list(seas_days))
-        all_matches[j,:] = fulldays
-        all_matches1[j,:] = fulldays1
-    else:
-        all_matches[j,:] = ['nan']
-        all_matches1[j,:] = ['nan']   
-
-# 'pop2020' is a dataset of estimated 2020 population counts from GPWv4
-# dimensions are 19 x 24, corresponding to 31-49N & 126-103W
-pop2020 = np.load('pop2020.npy') 
-popvec = np.reshape(pop2020,456)
-
-person_days = []
-idx = np.arange(0,3660,183)
-for k in range(20):
-    step = idx[k]
-    year = all_matches[:,step+91:step+183]
-    sums = np.sum(year,axis=1)
-    exp = popvec * sums
-    person_days.append(np.nansum(exp))
-    
 fig = plt.figure(figsize=(8,6))
 plt.grid(linewidth=0.5)
-plt.plot(person_days, '-o', markersize=7, color='tab:blue')
+plt.plot(longest, '-o', markersize=7, color='tab:brown')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 15)
-plt.yticks(np.arange(0,1400000000,200000000), ('0','200M','400M','600M','800M','1.0B','1.2B'), 
-           fontsize = 15)
-plt.ylabel('Person-Days', fontsize = 17)
+plt.yticks(np.arange(0,18,2), fontsize=15)
+plt.ylabel('# of consecutive days', fontsize = 17)
 plt.xlabel('Year', fontsize = 17)
-plt.title('(B) Co-occurrence exposure', fontsize = 17)
-l = plt.legend(['Person-days (+24.9M $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ < 0.001)'], 
+plt.title('(B) Persistence of widespread co-occurrence days', fontsize = 17)
+l = plt.legend(['Most consecutive days (+0.31 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.001)'], 
             loc='upper left', fontsize=13)
 for text in l.get_texts():
     s = str(text)
-    if s[12] == 'P':
-        text.set_color('tab:blue')
+    if s[12] == 'M':
+        text.set_color('tab:brown')
+plt.savefig('fig_2b.png',dpi=600)
         
 # plot C
 
