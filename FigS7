@@ -1,2 +1,177 @@
 #!/usr/bin/env python3
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import h5py
+
+# load 500-hPa geopotential height anomalies from ERA5, 
+# July-September 1979-2020 covering 25-55N, 130-100W
+z500_anoms_jas = np.load('z500_anoms_jas.npy')
+z500_vec = np.reshape(z500_anoms_jas,(14641,3864))
+
+# load the 6-node SOM
+f = h5py.File('som_6.mat','r')
+som = f.get('som') # Get a certain dataset
+som = np.squeeze(np.array(som))
+
+def mean2(x):
+    y = np.sum(x) / np.size(x)
+    return y
+
+def corr2(a,b): # define function to compute 2D pattern correlation
+    a = a - mean2(a)
+    b = b - mean2(b)
+
+    r = (a*b).sum() / np.sqrt((a*a).sum() * (b*b).sum())
+    return r
+ 
+# 2D pattern correlation within each SOM node, for the 6-node SOM
+allvals = []
+lens = []
+nodes = np.arange(1,7,1)
+for x in range(6):
+    node = nodes[x]
+    day_idx = np.where(som==node)[0]
+    z500 = z500_vec[:,day_idx]
+    mean1 = np.mean(z500, axis=1)
+    vals = np.empty(len(day_idx))
+    for k in range(len(day_idx)):
+        day = z500[:,k]
+        vals[k] = corr2(day,mean1)
+    allvals.extend(vals)
+    lens.append(len(day_idx))
+    
+allvals6 = allvals.copy()
+
+# compute node-node correlations for the 6-node SOM
+allvals = []
+nodes = np.arange(1,7,1)
+for x in range(6):
+    node = nodes[x]
+    day_idx = np.where(som==node)[0]
+    z500 = z500_vec[:,day_idx]
+    mean0 = np.mean(z500, axis=1)
+    vals = []
+    for k in range(6):
+        node1 = nodes[k]
+        day_idx1 = np.where(som==node1)[0]
+        z1 = z500_vec[:,day_idx1]
+        mean1 = np.mean(z1, axis=1)
+        vals.append(corr2(mean0,mean1))
+    allvals.extend(vals)
+    
+splitvals6 = pd.Series(allvals)[pd.Series(allvals) < 1]
+
+# load the 12-node SOM
+f = h5py.File('som_12.mat','r')
+som = f.get('som') # Get a certain dataset
+som = np.squeeze(np.array(som))
+
+# 2D pattern correlation within each SOM node, for the 12-node SOM
+allvals = []
+lens = []
+nodes = np.arange(1,13,1)
+for x in range(12):
+    node = nodes[x]
+    day_idx = np.where(som==node)[0]
+    z500 = z500_vec[:,day_idx]
+    mean1 = np.mean(z500, axis=1)
+    vals = np.empty(len(day_idx))
+    for k in range(len(day_idx)):
+        day = z500[:,k]
+        vals[k] = corr2(day,mean1)
+    allvals.extend(vals)
+    lens.append(len(day_idx))
+
+allvals12 = allvals.copy()
+
+# compute node-node correlations for the 12-node SOM
+allvals = []
+nodes = np.arange(1,13,1)
+for x in range(12):
+    node = nodes[x]
+    day_idx = np.where(som==node)[0]
+    z500 = z500_vec[:,day_idx]
+    mean0 = np.mean(z500, axis=1)
+    vals = []
+    for k in range(12):
+        node1 = nodes[k]
+        day_idx1 = np.where(som==node1)[0]
+        z1 = z500_vec[:,day_idx1]
+        mean1 = np.mean(z1, axis=1)
+        vals.append(corr2(mean0,mean1))
+    allvals.extend(vals)        
+        
+splitvals12 = pd.Series(allvals)[pd.Series(allvals) < 1]
+
+# load the 20-node SOM
+f = h5py.File('som_20.mat','r')
+som = f.get('som') # Get a certain dataset
+som = np.squeeze(np.array(som))
+
+# 2D pattern correlation within each SOM node, for the 20-node SOM
+allvals = []
+lens = []
+nodes = np.arange(1,21,1)
+for x in range(20):
+    node = nodes[x]
+    day_idx = np.where(som==node)[0]
+    z500 = z500_vec[:,day_idx]
+    mean1 = np.mean(z500, axis=1)
+    vals = np.empty(len(day_idx))
+    for k in range(len(day_idx)):
+        day = z500[:,k]
+        vals[k] = corr2(day,mean1)
+    allvals.extend(vals)
+    lens.append(len(day_idx))
+    
+allvals20 = allvals.copy()
+
+# compute node-node correlations for the 20-node SOM
+allvals = []
+nodes = np.arange(1,21,1)
+for x in range(20):
+    node = nodes[x]
+    day_idx = np.where(som==node)[0]
+    z500 = z500_vec[:,day_idx]
+    mean0 = np.mean(z500, axis=1)
+    vals = []
+    for k in range(20):
+        node1 = nodes[k]
+        day_idx1 = np.where(som==node1)[0]
+        z1 = z500_vec[:,day_idx1]
+        mean1 = np.mean(z1, axis=1)
+        vals.append(corr2(mean0,mean1))
+    allvals.extend(vals)
+  
+splitvals20 = pd.Series(allvals)[pd.Series(allvals) < 1]
+
+fig = plt.figure(figsize=(8,6))
+bp = plt.boxplot([allvals6,allvals12,allvals20],
+             whis = [10,90], sym = 'o', showfliers = True,
+             medianprops = {'color': 'r'})
+[bp['boxes'][k].set(color='r') for k in range(3)]
+plt.xticks(np.arange(1,4,1), ('2 x 3','3 x 4','4 x 5'), fontsize = 15)
+plt.yticks(np.arange(-1,1.2,0.2), fontsize=15)
+plt.ylim(top=1)
+plt.ylabel('Pearson\'s $\it{r}$', fontsize = 18)
+plt.xlabel('SOM node configuration', fontsize = 18)
+plt.axhline(y=0,color='black',linestyle='--')
+plt.title('(A) Node-field correlation coefficients', fontsize = 20)
+plt.savefig('node_field.png',dpi=600)
+
+fig = plt.figure(figsize=(8,6))
+bp = plt.boxplot([splitvals6,splitvals12,splitvals20],
+             whis = [10,90], sym = 'o', showfliers = True,
+             medianprops = {'color': 'r'})
+[bp['boxes'][k].set(color='r') for k in range(3)]
+plt.xticks(np.arange(1,4,1), ('2 x 3','3 x 4','4 x 5'), fontsize = 15)
+plt.yticks(np.arange(-1,1.1,0.2), fontsize=15)
+plt.ylim(top=1)
+plt.ylim(bottom=-1)
+plt.ylabel('Pearson\'s $\it{r}$', fontsize = 18)
+plt.xlabel('SOM node configuration', fontsize = 18)
+plt.axhline(y=0,color='black',linestyle='--')
+plt.title('(B) Node-node correlation coefficients', fontsize = 20)
+plt.savefig('node_node.png',dpi=600)
