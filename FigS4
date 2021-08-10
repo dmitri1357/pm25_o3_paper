@@ -1,2 +1,237 @@
 #!/usr/bin/env python3
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt   
+from mpl_toolkits.basemap import Basemap
+from itertools import compress
+from collections import Counter     
+
+import matplotlib as mpl
+mpl.rc('font',family='Arial')
+
+# these arrays of PM2.5 and O3 gridded data for the western U.S. can be 
+# downloaded from Zenodo.org (see README for details)
+# dimension 1: 19 latitudes from 31-49N
+# dimension 2: 24 longitudes from 126-103W
+# dimension 3: 7300 days from 1 OCT 2000 - 30 SEP 2020
+pm_west = np.load('pm_west.npy') # average daily concentrations
+oz_west = np.load('oz_west.npy') # MDA8 concentrations
+
+pm_west = np.reshape(pm_west,(456,7300)) # vectorize lats & lons
+oz_west = np.reshape(oz_west,(456,7300)) # vectorize lats & lons
+
+perc = 90
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+days1 = []
+for k in range(20):
+    step = year_start[k]
+    annual = np.arange(step,step+365,1)
+    dates1 = pd.date_range(start='10/1/{}'.format(years[k]), end='2/28/{}'.format(years[k+1]))
+    dates2 = pd.date_range(start='3/1/{}'.format(years[k+1]), end='9/30/{}'.format(years[k+1]))
+    dates3 = np.hstack([dates1,dates2])
+    for j in range(456):
+        cell = pm_west[j,:]
+        if np.nanmax(cell) > 0:
+            pm1 = pm_west[j,annual]
+            oz1 = oz_west[j,annual]
+            y1 = np.nanpercentile(pm1,perc)
+            x1 = np.where(pm1 > y1, 1, 0)
+            y2 = np.nanpercentile(oz1,perc)
+            x2 = np.where(oz1 > y2, 1, 0)
+            df = pd.DataFrame({'date':dates3,'p1':x1,'o1':x2})
+            idx = df.date[(df.p1==1)&(df.o1==1)]
+            days1.extend(idx)
+
+count1 = Counter(days1)
+items = sorted(count1.items())
+
+vals = []
+for k in range(len(count1)):
+    vals.append(items[k][1])
+vals = (np.array(vals)/375) * 100
+
+keys = []
+for k in range(len(count1)):
+    keys.append(items[k][0])
+    
+co_occur = np.zeros(7300)
+n = -1
+for k in range(7300):
+    day = dates[k]
+    if day in keys:
+        n += 1
+        co_occur[k] = vals[n]
+    else:
+        pass
+      
+co_df = pd.DataFrame({'date':dates,'perc':co_occur})
+co_df['year'] = co_df.date.dt.year
+co_df['month'] = co_df.date.dt.month
+warm = co_df[(co_df.month == 7)|(co_df.month == 8)|(co_df.month == 9)].reset_index()
+
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+all_matches = np.empty([456,3660])
+all_matches1 = np.empty([456,7300])
+for j in range(456):
+    cell = pm_west[j,:]
+    if np.nanmax(cell) > 0:
+        seas_days = np.empty(365)
+        fulldays = []
+        fulldays1 = []
+        for k in range(20):
+            step = year_start[k]
+            sea = np.arange(step,step+365,1)
+            pm2 = pm_west[j,sea]
+            oz2 = oz_west[j,sea]
+            y3 = np.nanpercentile(pm2,90)
+            x3 = np.where(pm2 > y3)[0]
+            y4 = np.nanpercentile(oz2,90)
+            x4 = np.where(oz2 > y4)[0]
+            match2 = [x4[i] in x3 for i in range(len(x4))]
+            day_idx2 = list(compress(x4,match2))
+            for m in range(365):
+                if m not in day_idx2:
+                    seas_days[m] = 0
+                else:
+                    seas_days[m] = 1
+            seas_days1 = seas_days[182:]
+            fulldays.extend(list(seas_days1))
+            fulldays1.extend(list(seas_days))
+        all_matches[j,:] = fulldays
+        all_matches1[j,:] = fulldays1
+    else:
+        all_matches[j,:] = ['nan']
+        all_matches1[j,:] = ['nan']   
+
+all_matches2 = np.empty([456,1840])
+idx1 = np.arange(0,3660,183)
+idx2 = np.arange(0,1841,92)
+for j in range(456):
+    cell = pm_west[j,:]
+    for k in range(20):
+        step1 = idx1[k]
+        step2 = idx2[k]
+        if np.nanmax(cell) > 0:
+            chunk = all_matches[j,step1+91:step1+183]
+            all_matches2[j,step2:step2+92] = chunk
+        else:
+            all_matches2[j,step2:step2+92] = ['nan']
+            
+idx = np.arange(0,7300,365)
+pm_west1 = np.empty([456,1840])
+for k in range(456):
+    cell = pm_west[k,:]
+    keepvals = []
+    for j in range(20):
+        step = idx[j]
+        keepvals.extend(cell[step+273:step+365])
+    pm_west1[k,:] = keepvals
+    
+lat = np.arange(31,50,1)
+lon = np.arange(-126,-102,1)
+lon, lat = np.meshgrid(lon, lat)
+years = [2015,2017,2018,2020]
+fig = plt.figure(figsize=(14,6))
+for x in range(4):
+    yr = years[x]
+    fig.add_subplot(1,4,x+1)
+    ann = warm[warm.year == yr]
+    year_idx = ann.index.values
+    mat_sub = all_matches2[:,year_idx]
+    pm_sub = pm_west1[:,year_idx]
+    avgs = np.empty(456)
+    for k in range(456):
+        cell = mat_sub[k,:]
+        pm = pm_sub[k,:]
+        sub_df = pd.DataFrame({'idx':cell,'pm':pm})
+        wides = sub_df[sub_df.idx == 1]
+        if wides.shape[0] > 0:
+            avgs[k] = np.nanmean(wides.pm)
+        else:
+            avgs[k] = 'nan'
+    var = np.reshape(avgs,(19,24))
+    m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+    m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+    m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+    m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+    m.drawcoastlines(color='black')
+    m.pcolormesh(lon, lat, var, latlon=True,
+                 cmap = plt.cm.get_cmap('YlOrRd',14))
+    plt.title('{}'.format(years[x]), size=20)
+    plt.clim(0,70)
+    avgs1 = np.empty(456)
+    for x in range(456):
+        cell = avgs[x]
+        if cell > 0:
+            avgs1[x] = 'nan'
+        else:
+            avgs1[x] = 0
+    var1 = np.reshape(avgs1,(19,24))
+    m.pcolormesh(lon, lat, var1, latlon=True,
+                 cmap = plt.cm.get_cmap('hot_r',2))
+fig.subplots_adjust(hspace = 0.3)
+
+idx = np.arange(0,7300,365)
+oz_west1 = np.empty([456,1840])
+for k in range(456):
+    cell = oz_west[k,:]
+    keepvals = []
+    for j in range(20):
+        step = idx[j]
+        keepvals.extend(cell[step+273:step+365])
+    oz_west1[k,:] = keepvals
+
+# for ozone
+    
+lat = np.arange(31,50,1)
+lon = np.arange(-126,-102,1)
+lon, lat = np.meshgrid(lon, lat)
+years = [2015,2017,2018,2020]
+fig = plt.figure(figsize=(14,6))
+for x in range(4):
+    yr = years[x]
+    fig.add_subplot(1,4,x+1)
+    ann = warm[warm.year == yr]
+    year_idx = ann.index.values
+    mat_sub = all_matches2[:,year_idx]
+    pm_sub = oz_west1[:,year_idx]
+    avgs = np.empty(456)
+    for k in range(456):
+        cell = mat_sub[k,:]
+        pm = pm_sub[k,:]
+        sub_df = pd.DataFrame({'idx':cell,'pm':pm})
+        wides = sub_df[sub_df.idx == 1]
+        if wides.shape[0] > 0:
+            avgs[k] = np.nanmean(wides.pm)
+        else:
+            avgs[k] = 'nan'
+    var = np.reshape(avgs,(19,24))
+    m = Basemap(projection='lcc', area_thresh=10000, resolution='l',
+            width=2.5E6, height=2.5E6,
+            lat_0=40, lon_0=-114)
+    m.fillcontinents(color='gray',lake_color='white',alpha=1,zorder=0)
+    m.drawstates(linewidth=0.5,linestyle='solid',color='k')
+    m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
+    m.drawcoastlines(color='black')
+    m.pcolormesh(lon, lat, var, latlon=True,
+                 cmap = plt.cm.get_cmap('YlOrRd',10))
+    plt.title('{}'.format(years[x]), size=20)
+    plt.clim(0,100)
+    avgs1 = np.empty(456)
+    for x in range(456):
+        cell = avgs[x]
+        if cell > 0:
+            avgs1[x] = 'nan'
+        else:
+            avgs1[x] = 0
+    var1 = np.reshape(avgs1,(19,24))
+    m.pcolormesh(lon, lat, var1, latlon=True,
+                 cmap = plt.cm.get_cmap('hot_r',2))
+fig.subplots_adjust(hspace = 0.3)
+
+
