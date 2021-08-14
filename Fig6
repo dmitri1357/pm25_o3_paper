@@ -109,7 +109,7 @@ for k in range(6478):
     counts.append((count/6336)*100)
 counts = np.array(counts)
 
-lag_length = 4
+lag_length = 7
 windows = np.empty([21,lag_length+1]) # 21 independent widespread co-occurrence extent peaks
 windows_tmax = np.empty([21,lag_length+1]) 
 vals = []
@@ -119,8 +119,8 @@ for k in range(21):
     vals.append(np.round(row[3],1))
     windows[k,:] = bas[idx-lag_length:idx+1]
     windows_tmax[k,:] = counts[idx-lag_length:idx+1]
-avgs = np.max(windows,axis=1) 
-max_t = np.mean(windows_tmax,axis=1)
+avgs = np.nanmax(windows,axis=1) 
+max_t = np.nanmax(windows_tmax,axis=1)
 
 stats.pearsonr(avgs,vals) # calculate Pearson correlation between burned area and co-occurrence extent
 stats.pearsonr(max_t,vals) # calculate Pearson correlation between +Tmax extent and co-occurrence extent
@@ -138,11 +138,12 @@ ax.tick_params(labelsize=13)
 plt.title('(A) Burned area vs. co-occurrence spatial extent', size=17)
 plt.grid(linewidth=0.5)
 #ax.axhline(y=25, linestyle='--', color='k')
-l = plt.legend(['$\it{r}$ = 0.74, $\it{p}$ < 0.001)'], 
+l = plt.legend(['$\it{r}$ = 0.66, $\it{p}$ = 0.001)'], 
             loc='upper left', fontsize=15)
 for text in l.get_texts():
     text.set_color('tab:brown')
-    
+plt.savefig('fig6a.png',dpi=600)
+  
 # plot B
 
 fig = plt.figure(figsize=(8,6))
@@ -151,13 +152,15 @@ plt.scatter(max_t[:5],vals[:5],color='y') # color the 5 most widespread days dif
 ax.set_xlabel('% of western US with +Tmax anomalies >1$\sigma$',size=16)
 ax.set_ylabel('Co-occurrence extent - % of western US',size=16)
 ax.set_yticks(np.arange(25,75,5))
-ax.set_xticks(np.arange(0,90,5))
+ax.set_xticks(np.arange(0,101,5))
 ax.tick_params(labelsize=13)
 plt.title('(B) Tmax anomalies vs. co-occurrence spatial extent', size=17)
 plt.grid(linewidth=0.5)
-l = plt.legend(['$\it{r}$ = 0.54, $\it{p}$ = 0.01)'], 
+l = plt.legend(['$\it{r}$ = 0.49, $\it{p}$ = 0.02)'], 
             loc='upper left', fontsize=15)
 for text in l.get_texts():
     text.set_color('orangered')
+plt.savefig('fig6b.png',dpi=600)
+
     
     
