@@ -368,8 +368,8 @@ stats.linregress(x,y)
 
 intercept = stats.linregress(x,y)[1]
 slope = stats.linregress(x,y)[0]
-vals2 = [intercept]
-for k in range(19):
+vals2 = []
+for k in range(20):
     intercept += slope
     vals2.append(intercept)
     
@@ -444,23 +444,6 @@ for k in range(20):
     sums = np.sum(year,axis=1)
     exp = popvec * sums
     person_days.append(np.nansum(exp))
-
-x = np.arange(20)
-y = person_days
-stats.linregress(x,y)
-
-intercept = stats.linregress(x,y)[1]
-slope = stats.linregress(x,y)[0]
-vals2 = [intercept]
-for k in range(19):
-    intercept += slope
-    vals2.append(intercept)
-
-slopes = np.empty(10000)
-for k in range(10000):
-    run = np.random.permutation(person_days)
-    slopes[k] = stats.linregress(x,run)[0]
-stats.percentileofscore(slopes, slope)
 
 fig = plt.figure(figsize=(6.8,4.8))
 plt.grid(linewidth=0.5)
