@@ -251,7 +251,7 @@ for j in tqdm(range(456)):
     else:
         oz_trends2[j,:] = ['nan']
         
-  scores = oz_trends2[:,1]
+scores = oz_trends2[:,1]
 exceed = np.empty(456)
 for k in range(456):
     cell = pm_west[k,:]
@@ -355,31 +355,12 @@ for k in range(7300):
     else:
         pass
 
-max1 = []
 max2 = []
 idx = np.arange(0,7300,365)
 for k in range(20):
     step = idx[k]
-    cool_seas = co_occur[step:step+273]
     warm_seas = co_occur[step+273:step+365]
-    max1.append(np.max(cool_seas))
     max2.append(np.max(warm_seas))
-    
-x = np.arange(20)
-y = max1
-stats.linregress(x,y)
-
-intercept = stats.linregress(x,y)[1]
-slope = stats.linregress(x,y)[0]
-vals1 = []
-for k in range(20):
-    intercept += slope
-    vals1.append(intercept)
-
-slopes = np.empty(10000)
-for k in range(10000):
-    run = np.random.permutation(max1)
-    slopes[k] = stats.linregress(x,run)[0]
     
 x = np.arange(20)
 y = max2
@@ -399,25 +380,20 @@ for k in range(10000):
     
 fig = plt.figure(figsize=(6.8,4.8))
 plt.grid(linewidth=0.5)
-plt.plot(max2,'-or')
-plt.plot(max1,'-ob')
-plt.plot(vals2,'--r')
-plt.plot(vals1,'--b')
+plt.plot(max2,'-o',color='firebrick')
+plt.plot(vals2,'--',color='firebrick')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 14)
 plt.yticks(np.arange(0,80,10), fontsize=14)
-plt.ylabel('Max daily % of gridcells', fontsize = 16)
-plt.xlabel('Year', fontsize = 16)
-plt.title('(D) Maximum western US % of gridcells', fontsize = 17)
-l = plt.legend(['JAS (+1.35% $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.02)',
-            'OCT-JUN (-0.30% $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.27)'], 
+plt.ylabel('Percent of grid cells affected', fontsize = 16)
+plt.title('(D) Maximum areal extent of co-occurrence', fontsize = 17)
+l = plt.legend(['Percent of western US (+1.35% $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.02)'], 
             loc='upper left', fontsize=13)
 for text in l.get_texts():
     s = str(text)
-    if s[12] == 'J':
-        text.set_color('r')
-    else:
-        text.set_color('b')
+    if s[12] == 'P':
+        text.set_color('firebrick')
+plt.savefig('fig_1d.png',dpi=600)
         
 # plot E
 
@@ -460,6 +436,7 @@ for j in range(456):
 pop2020 = np.load('pop2020.npy') 
 popvec = np.reshape(pop2020,456)
 
+person_days = []
 idx = np.arange(0,3660,183)
 for k in range(20):
     step = idx[k]
@@ -470,19 +447,18 @@ for k in range(20):
 
 fig = plt.figure(figsize=(6.8,4.8))
 plt.grid(linewidth=0.5)
-plt.plot(person_days, '-o', markersize=7, color='tab:blue')
+plt.plot(person_days, '-o', markersize=7, color='darkgoldenrod')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 14)
 plt.yticks(np.arange(0,1400000000,200000000), ('0','200M','400M','600M','800M','1.0B','1.2B'), 
            fontsize = 14)
 plt.ylabel('Person-Days', fontsize = 16)
-plt.xlabel('Year', fontsize = 16)
-plt.title('(E) Co-occurrence exposure', fontsize = 17)
+plt.title('(E) Population exposure to co-occurrence', fontsize = 17)
 l = plt.legend(['Person-days (+24.9M $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ < 0.001)'], 
             loc='upper left', fontsize=13)
 for text in l.get_texts():
     s = str(text)
     if s[12] == 'P':
-        text.set_color('tab:blue')
-
+        text.set_color('darkgoldenrod')
+plt.savefig('fig_1e.png',dpi=600)
  
