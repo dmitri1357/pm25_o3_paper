@@ -436,6 +436,15 @@ for j in range(456):
 pop2020 = np.load('pop2020.npy') 
 popvec = np.reshape(pop2020,456)
 
+person_days = []
+idx = np.arange(0,7300,365)
+for k in range(20):
+    step = idx[k]
+    year = all_matches1[:,step+273:step+365]
+    sums = np.sum(year,axis=1)
+    exp = popvec * sums
+    person_days.append(np.nansum(exp))
+
 x = np.arange(20)
 y = person_days
 stats.linregress(x,y)
@@ -456,14 +465,13 @@ stats.percentileofscore(slopes, slope)
 fig = plt.figure(figsize=(6.8,4.8))
 plt.grid(linewidth=0.5)
 plt.plot(person_days, '-o', markersize=7, color='darkgoldenrod')
-plt.plot(vals2,'--',color='darkgoldenrod')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 14)
 plt.yticks(np.arange(0,1400000000,200000000), ('0','200M','400M','600M','800M','1.0B','1.2B'), 
            fontsize = 14)
 plt.ylabel('Person-Days', fontsize = 16)
 plt.title('(E) Population exposure to co-occurrence', fontsize = 17)
-l = plt.legend(['Person-days (+26.4M $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ < 0.001)'], 
+l = plt.legend(['Person-days (+24.9M $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ < 0.001)'], 
             loc='upper left', fontsize=13)
 for text in l.get_texts():
     s = str(text)
