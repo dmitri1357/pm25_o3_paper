@@ -7,6 +7,7 @@ from mpl_toolkits.basemap import Basemap
 from itertools import compress
 from scipy.ndimage import gaussian_filter
 from dbfread import DBF
+import h5py
 
 import matplotlib as mpl
 mpl.rc('font',family='Arial')
