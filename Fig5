@@ -130,7 +130,6 @@ for i in np.arange(0,15,1):
                  textcoords='offset points', ha='center')
 ax2.tick_params(axis='y', labelcolor=color)
 ax2.tick_params(axis='y', labelsize=12)
-
 plt.title('(A) Episode of 15-29 August, 2020', fontsize = 20)
 
 # plot B
