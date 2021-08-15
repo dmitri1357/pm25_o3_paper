@@ -378,10 +378,10 @@ plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','','',
            '2010','','','','','2015','','','','','2020'), fontsize = 15)
 plt.yticks(np.arange(90,101,1), fontsize=15)
 plt.ylabel('Average percentile', fontsize = 17)
-plt.xlabel('Year', fontsize = 17)
-plt.title('(C) $\mathregular{PM_{2.5}}$/$\mathregular{O_3}$ percentiles during widespread events', fontsize = 17)
-plt.legend(['$\mathregular{PM_{2.5}}$ percentile','$\mathregular{O_3}$ percentile'],
+plt.title('(C) $\mathregular{PM_{2.5}}$/ozone percentiles during widespread events', fontsize = 17)
+plt.legend(['$\mathregular{PM_{2.5}}$ percentile','Ozone percentile'],
            loc='lower left',fontsize=13)
+plt.savefig('fig_2c.png',dpi=600)
 
 # plot D
 
@@ -427,8 +427,7 @@ fig, ax1 = plt.subplots()
 plt.axhline(y = 70, color = 'tab:blue', linestyle = '--')
 plt.axhline(y = 46.73, color = 'tab:orange', linestyle = '--')
 color = 'tab:blue'
-ax1.set_xlabel('Year', size=14)
-ax1.set_ylabel('$\mathregular{O_3}$ conc. (ppb)', color=color, size=14)
+ax1.set_ylabel('Ozone concentrations (ppb)', color=color, size=14)
 ax1.set_yticks(np.arange(0,85,5))
 ax1.set_ylim(top=80)
 ax1.set_xticks(np.arange(0,20,1))
@@ -438,10 +437,11 @@ ax1.bar(np.arange(20), oz, color=color, width=0.3)
 ax1.tick_params(axis='y', labelcolor=color)
 ax2 = ax1.twinx()  
 color = 'tab:orange'
-ax2.set_ylabel('$\mathregular{PM_{2.5}}$ conc. ($\mu$g/$\mathregular{m^3}$)', color=color, size=14)  
+ax2.set_ylabel('$\mathregular{PM_{2.5}}$ concentrations ($\mu$g/$\mathregular{m^3}$)', color=color, size=14)  
 ax2.set_yticks(np.arange(0,65,5))
 ax2.set_ylim(top=60)
 ax2.bar(np.arange(20)+0.3, pm, color=color, width=0.3)
 ax2.tick_params(axis='y', labelcolor=color)
-plt.title('(D) Avg. concentrations during widespread events', fontsize = 14)
+plt.title('(D) Average concentrations during widespread events', fontsize = 14)
+plt.savefig('fig_2d.png',dpi=600)
 
