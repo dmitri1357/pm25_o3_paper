@@ -94,11 +94,10 @@ plt.xticks(np.arange(0,42,1), ('','1980','','','','','1985','','','','','1990','
                    '','','1995','','','','','2000','','','','','2005','','','','',
                    '2010','','','','','2015','','','','','2020'), fontsize = 13)
 plt.yticks(np.arange(0,55,5), fontsize=13)
-plt.ylabel('# of July-September days', fontsize = 17)
-plt.xlabel('Year', fontsize = 17)
-plt.title('(A) Combined annual total days', fontsize = 17)
-l = plt.legend(['Nodes 5,9,10 (+14.2 d, $\it{p}$ < 0.001)',
-            'Nodes 2,3,4 (-12.6 d, $\it{p}$ < 0.001)'], 
+plt.ylabel('Number of days', fontsize = 15)
+plt.title('(A) Annual frequency of high/low co-occurrence exposure patterns', fontsize = 15)
+l = plt.legend(['Nodes 5,9,10 (+14.2 days, $\it{p}$ < 0.001)',
+            'Nodes 2,3,4 (-12.6 days, $\it{p}$ < 0.001)'], 
             loc='upper left', fontsize=15)
 for text in l.get_texts():
     s = str(text)
@@ -106,6 +105,7 @@ for text in l.get_texts():
         text.set_color('tab:brown')
     else:
         text.set_color('tab:green')
+plt.savefig('fig_4a.png',dpi=600)
         
 # plot B
 
@@ -199,11 +199,10 @@ plt.xticks(np.arange(0,42,1), ('','1980','','','','','1985','','','','','1990','
                    '','','1995','','','','','2000','','','','','2005','','','','',
                    '2010','','','','','2015','','','','','2020'), fontsize = 13)
 plt.yticks(np.arange(0,24,2), fontsize=13)
-plt.ylabel('# of consecutive days', fontsize = 17)
-plt.xlabel('Year', fontsize = 17)
-plt.title('(B) Combined multi-day persistence', fontsize = 17)
-l = plt.legend(['Nodes 5,9,10 (+4.3 cons. d, $\it{p}$ = 0.008)',
-            'Nodes 2,3,4 (-4.3 cons. d, $\it{p}$ = 0.002)'], 
+plt.ylabel('Number of consecutive days', fontsize = 15)
+plt.title('(B) Persistence of high/low co-occurrence exposure patterns', fontsize = 15)
+l = plt.legend(['Nodes 5,9,10 (+4.3 cons. days, $\it{p}$ = 0.008)',
+            'Nodes 2,3,4 (-4.3 cons. days, $\it{p}$ = 0.002)'], 
             loc='upper left', fontsize=15)
 for text in l.get_texts():
     s = str(text)
@@ -211,3 +210,4 @@ for text in l.get_texts():
         text.set_color('tab:brown')
     else:
         text.set_color('tab:green')
+plt.savefig('fig_4b.png',dpi=600)
