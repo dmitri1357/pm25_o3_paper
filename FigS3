@@ -174,12 +174,11 @@ plt.grid(linewidth=0.5)
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 15)
 plt.yticks(np.arange(0,35,5), fontsize=15)
-plt.ylabel('# of days', fontsize = 17)
-plt.xlabel('Year', fontsize = 17)
-plt.title('Widespread co-occurrence days', fontsize = 20)
-l = plt.legend(['$\geq$15% (+0.80 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.005)',
-            '$\geq$20% (+0.72 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.001)',
-            '$\geq$25% (+0.62 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.002)'], 
+plt.ylabel('Number of days', fontsize = 17)
+plt.title('Widespread co-occurrence days \ndefined at different thresholds', fontsize = 20)
+l = plt.legend(['$\geq$15% (+0.80 days $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.005)',
+            '$\geq$20% (+0.72 days $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.001)',
+            '$\geq$25% (+0.62 days $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.002)'], 
             loc='upper left', fontsize=15)
 for text in l.get_texts():
     s = str(text)
@@ -189,4 +188,4 @@ for text in l.get_texts():
         text.set_color('tab:brown')
     else:
         text.set_color('tab:blue')
-
+plt.savefig('fig_s3.png',dpi=600)
