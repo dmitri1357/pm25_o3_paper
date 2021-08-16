@@ -130,15 +130,15 @@ stats.pearsonr(max_t,vals) # calculate Pearson correlation between +Tmax extent 
 fig = plt.figure(figsize=(8,6))
 ax = sns.regplot(avgs, vals, ci=None, scatter_kws={'s':75}, color='tab:brown')
 plt.scatter(avgs[:5],vals[:5],color='y') # color the 5 most widespread days differently
-ax.set_xlabel('Max daily burned area (Sq. Km.)',size=16)
-ax.set_ylabel('Co-occurrence extent - % of western US',size=16)
+ax.set_xlabel('Maximum daily burned area (Sq. Km.)',size=16)
+ax.set_ylabel('Western US co-occurrence extent (percent)',size=16)
 ax.set_yticks(np.arange(25,75,5))
 ax.set_xticks(np.arange(0,1201,100))
 ax.tick_params(labelsize=13)
-plt.title('(A) Burned area vs. co-occurrence spatial extent', size=17)
+plt.title('(A) Burned area vs. co-occurrence spatial extent', size=16)
 plt.grid(linewidth=0.5)
 #ax.axhline(y=25, linestyle='--', color='k')
-l = plt.legend(['$\it{r}$ = 0.66, $\it{p}$ = 0.001'], 
+l = plt.legend(['Pearson\'s $\it{r}$ = 0.66 \n$\it{p}$-value = 0.001'], 
             loc='upper left', fontsize=15)
 for text in l.get_texts():
     text.set_color('tab:brown')
@@ -149,18 +149,16 @@ plt.savefig('fig6a.png',dpi=600)
 fig = plt.figure(figsize=(8,6))
 ax = sns.regplot(max_t, vals, ci=None, scatter_kws={'s':75}, color='orangered')
 plt.scatter(max_t[:5],vals[:5],color='y') # color the 5 most widespread days differently
-ax.set_xlabel('% of western US with +Tmax anomalies >1$\sigma$',size=16)
-ax.set_ylabel('Co-occurrence extent - % of western US',size=16)
+ax.set_xlabel('Percent of western US with +Tmax anomalies >1$\sigma$',size=16)
+ax.set_ylabel('Percent of western US with co-occurrence',size=16)
 ax.set_yticks(np.arange(25,75,5))
 ax.set_xticks(np.arange(0,101,5))
 ax.tick_params(labelsize=13)
-plt.title('(B) Tmax anomalies vs. co-occurrence spatial extent', size=17)
+plt.title('(B) Tmax anomalies vs. co-occurrence spatial extent', size=16)
 plt.grid(linewidth=0.5)
-l = plt.legend(['$\it{r}$ = 0.49, $\it{p}$ = 0.02'], 
+l = plt.legend(['Pearson\'s $\it{r}$ = 0.49 \n$\it{p}$-value = 0.02'], 
             loc='upper left', fontsize=15)
 for text in l.get_texts():
     text.set_color('orangered')
 plt.savefig('fig6b.png',dpi=600)
 
-    
-    
