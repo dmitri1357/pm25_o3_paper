@@ -287,6 +287,41 @@ for k in range(7300):
     day2 = oz_west[:,k]
     pm_normed[:,k] = day1/area_vec
     oz_normed[:,k] = day2/area_vec
+
+years = np.arange(2000,2021,1)
+year_start = np.arange(0,7300,365)
+all_matches = np.empty([456,3660])
+all_matches1 = np.empty([456,7300])
+for j in range(456):
+    cell = pm_west[j,:]
+    if np.nanmax(cell) > 0:
+        seas_days = np.empty(365)
+        fulldays = []
+        fulldays1 = []
+        for k in range(20):
+            step = year_start[k]
+            sea = np.arange(step,step+365,1)
+            pm2 = pm_west[j,sea]
+            oz2 = oz_west[j,sea]
+            y3 = np.nanpercentile(pm2,90)
+            x3 = np.where(pm2 > y3)[0]
+            y4 = np.nanpercentile(oz2,90)
+            x4 = np.where(oz2 > y4)[0]
+            match2 = [x4[i] in x3 for i in range(len(x4))]
+            day_idx2 = list(compress(x4,match2))
+            for m in range(365):
+                if m not in day_idx2:
+                    seas_days[m] = 0
+                else:
+                    seas_days[m] = 1
+            seas_days1 = seas_days[182:]
+            fulldays.extend(list(seas_days1))
+            fulldays1.extend(list(seas_days))
+        all_matches[j,:] = fulldays
+        all_matches1[j,:] = fulldays1
+    else:
+        all_matches[j,:] = ['nan']
+        all_matches1[j,:] = ['nan']   
     
 year_nums = np.arange(20)
 occ20_vals1 = np.empty([72,456])
