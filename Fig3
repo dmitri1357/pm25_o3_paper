@@ -257,13 +257,14 @@ for x in range(6):
     m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
     m.drawcoastlines(color='black')
     m.pcolormesh(lon, lat, var, latlon=True, 
-                 cmap = plt.cm.get_cmap('Reds',13), vmin=0, vmax=13)
+                 cmap = plt.cm.get_cmap('Reds',16), vmin=0, vmax=16)
     #plt.clim(-5,5)
     #plt.colorbar(ticks=np.arange(-5,6,1))
     #plt.colorbar()
     #plt.title('({}%)'.format(popperc1), size=13)
     #plt.text(50000,100000,'{}M'.format(occ_pop), size=16)
 fig.subplots_adjust(hspace = 0.3)
+plt.savefig('fig3_bottom.png',dpi=600)
 
 # this code is to create the horizontal colorbar for widespread co-occurrences
 fig = plt.figure(figsize=(7,6))
@@ -279,11 +280,11 @@ m.drawstates(linewidth=0.5,linestyle='solid',color='k')
 m.drawcountries(linewidth=0.5,linestyle='solid',color='k')
 m.drawcoastlines(color='black')
 m.pcolormesh(lon, lat, var, latlon=True, 
-             cmap = plt.cm.get_cmap('Reds',14), vmin=0, vmax=13)
+             cmap = plt.cm.get_cmap('Reds',17), vmin=0, vmax=16)
 #plt.clim(-5,5)
-cb = plt.colorbar(ticks=np.arange(0,14,1), orientation='horizontal', aspect=45)
-cb.ax.set_title('d')
+cb = plt.colorbar(ticks=np.arange(0,17,1), orientation='horizontal', aspect=45)
 cb.ax.tick_params(labelsize=13)
-cb.set_ticks(np.linspace(0.5,13.5,15))
+cb.set_ticks(np.linspace(0.5,16.5,18))
 cb.set_ticklabels(['0','1','2','3','4','5','6','7','8',
-                   '9','10','11','12','13'])
+                   '9','10','11','12','13','14','15','16'])
+plt.savefig('fig3_bottom_cbar.png',dpi=600)
