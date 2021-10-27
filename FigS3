@@ -167,9 +167,9 @@ year_counts3.insert(8,0)
 year_counts3.insert(18,0)
 
 fig = plt.figure(figsize=(8,6))
-plt.plot(year_counts3,'-o', color='tab:green')
-plt.plot(year_counts2,'-o', color='tab:brown')
-plt.plot(year_counts1,'-o', color='tab:blue')
+plt.plot(year_counts3,'-o', color='tab:blue')
+plt.plot(year_counts2,'-x', color='tab:orange')
+plt.plot(year_counts1,'-D', color='tab:purple')
 plt.grid(linewidth=0.5)
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 15)
@@ -183,9 +183,9 @@ l = plt.legend(['$\geq$15% (+0.80 days $\mathregular{y^-}$$\mathregular{^1}$, $\
 for text in l.get_texts():
     s = str(text)
     if s[19] == '1':
-        text.set_color('tab:green')
-    elif s[20] == '0':
-        text.set_color('tab:brown')
-    else:
         text.set_color('tab:blue')
+    elif s[20] == '0':
+        text.set_color('tab:orange')
+    else:
+        text.set_color('tab:purple')
 plt.savefig('fig_s3.png',dpi=600)
