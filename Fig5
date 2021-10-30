@@ -113,15 +113,15 @@ ax1.set_ylim(top=1400)
 ax1.set_xticks(np.arange(0,15,1))
 ax1.set_xticklabels(['15-AUG','','17-AUG','','19-AUG','','21-AUG','','23-AUG','','25-AUG',
                      '','27-AUG','','29-AUG'], fontsize = 14)
-ax1.plot(var2020, '--D', color=color)
+ax1.plot(var2020, '-o', color=color)
 ax1.tick_params(axis='y', labelcolor=color)
 ax1.tick_params(axis='y', labelsize=12)
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 color = 'tab:blue'
-ax2.set_ylabel('% of western US gridcells', color=color, fontsize=17)  
+ax2.set_ylabel('Fraction of western US grid cells (percent)', color=color, fontsize=17)  
 ax2.set_yticks(np.arange(0,110,10))
 ax2.set_ylim(top=100)
-ax2.plot(var2020_1, '--D', color=color)
+ax2.plot(var2020_1, '-D', color=color)
 ax2.bar(np.arange(0,15,1), height=count2020, color=color, width=0.3, alpha=0.3)
 for i in np.arange(0,15,1):
     node = som2020[i]
@@ -130,7 +130,21 @@ for i in np.arange(0,15,1):
                  textcoords='offset points', ha='center')
 ax2.tick_params(axis='y', labelcolor=color)
 ax2.tick_params(axis='y', labelsize=12)
-plt.title('(A) Episode of 15-29 August, 2020', fontsize = 20)
+plt.title('(A) August 2020 widespread co-occurrence episode', fontsize = 20)
+plt.savefig('fig_5a.png',dpi=600)
+
+# this code creates the legend
+plt.plot(var2020, '-o', color='tab:brown')
+plt.plot(var2020_1, '-D', color='tab:blue')
+l = plt.legend(['Burned Area','Co-occurrence extent'],
+           loc='upper right',fontsize=13)
+for text in l.get_texts():
+    s = str(text)
+    print(s)
+    if s[12] == 'B':
+        text.set_color('tab:brown')
+    else:
+        text.set_color('tab:blue')
 
 # plot B
 
