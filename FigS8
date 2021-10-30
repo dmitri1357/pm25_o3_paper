@@ -101,9 +101,9 @@ for k in range(21):
     idx = row[2]
     vals.append(np.round(row[3],1))
 
-lags = np.flipud(np.arange(31))
+lags = np.flipud(np.arange(16))
 corrs = []
-for j in range(31):
+for j in range(16):
     lag = lags[j]
     ba_maxes = []
     for k in range(21):
@@ -123,13 +123,21 @@ for j in range(16):
         t_maxes.append(np.nanmax(counts[idx-lag:idx+1]))
     corrs2.append(stats.pearsonr(vals[:21],t_maxes)[0])
     
-plt.plot(corrs,'--o')
-plt.plot(corrs2,'--o')
+plt.plot(corrs,'--D', markersize=5)
+plt.plot(corrs2,'--o', markersize=6)
 plt.grid(linewidth=0.5)
 plt.yticks(np.arange(0,0.81,0.1), fontsize = 13)
 plt.ylabel('Pearson\'s $\it{r}$', fontsize = 13)
 plt.xticks(np.arange(0,16,1), ('-15d','','','','','-10d','','','','','-5d','',
            '','','-1d',''), fontsize = 13)
 plt.xlabel('Lag (days preceding co-occurrence extent peak)', fontsize = 13)
-plt.legend(['Correlation with Burned Area','Correlation with Extent of +Tmax'])
+l = plt.legend(['Correlation with Burned Area','Correlation with Extent of +Tmax'])
 plt.title('Correlation coefficients between co-occurrence \n extent peaks and lagged burned area/Tmax', size=15)   
+for text in l.get_texts():
+    s = str(text)
+    print(s)
+    if s[29] == 'E':
+        text.set_color('tab:orange')
+    else:
+        text.set_color('tab:blue')
+plt.savefig('fig_s8.png',dpi=600)
