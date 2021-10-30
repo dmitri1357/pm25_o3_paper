@@ -414,8 +414,15 @@ plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','','',
 plt.yticks(np.arange(90,101,1), fontsize=15)
 plt.ylabel('Average percentile', fontsize = 17)
 plt.title('(C) $\mathregular{PM_{2.5}}$/ozone percentiles during widespread co-occurrences', fontsize = 16)
-plt.legend(['$\mathregular{PM_{2.5}}$ percentile','Ozone percentile'],
+l = plt.legend(['$\mathregular{PM_{2.5}}$ percentile','Ozone percentile'],
            loc='lower left',fontsize=13)
+for text in l.get_texts():
+    s = str(text)
+    print(s)
+    if s[12] == '$':
+        text.set_color('tab:orange')
+    else:
+        text.set_color('tab:blue')
 plt.savefig('fig_2c.png',dpi=600)
 
 # plot D
