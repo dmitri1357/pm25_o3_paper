@@ -494,5 +494,5 @@ ax2.scatter(np.repeat(16,13),list(df1.pm25[df1.year==2017]), marker='*', s=40, c
 ax2.scatter(np.repeat(17,22),list(df1.pm25[df1.year==2018]), marker='*', s=40, color=color)
 ax2.scatter(np.repeat(19,14),list(df1.pm25[df1.year==2020]), marker='*', s=40, color=color)
 ax2.tick_params(axis='y', labelcolor=color)
-plt.title('(D) Daily concentrations during widespread co-occurrence', fontsize = 13)
+plt.title('(D) Daily concentrations during widespread co-occurrences', fontsize = 13)
 plt.savefig('fig_2d.png',dpi=600)
