@@ -385,7 +385,7 @@ plt.plot(vals2,'--',color='firebrick')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 14)
 plt.yticks(np.arange(0,80,10), fontsize=14)
-plt.ylabel('Percent of grid cells affected', fontsize = 16)
+plt.ylabel('Fraction of grid cells (percent)', fontsize = 16)
 plt.title('(D) Maximum areal extent of co-occurrence', fontsize = 17)
 l = plt.legend(['Percent of western US (+1.35% $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.02)'], 
             loc='upper left', fontsize=13)
