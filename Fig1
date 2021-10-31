@@ -379,7 +379,7 @@ for k in range(10000):
     slopes[k] = stats.linregress(x,run)[0]
     
 fig = plt.figure(figsize=(6.8,4.8))
-plt.grid(linewidth=0.5)
+plt.grid(linewidth=0.5, color='0.5', alpha=0.5, linestyle='-.')
 plt.plot(max2,'-o',color='firebrick')
 plt.plot(vals2,'--',color='firebrick')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
@@ -393,7 +393,7 @@ for text in l.get_texts():
     s = str(text)
     if s[12] == 'P':
         text.set_color('firebrick')
-plt.savefig('fig_1d.png',dpi=600)
+plt.savefig('fig_1d.pdf',dpi=600)
         
 # plot E
 
@@ -446,7 +446,7 @@ for k in range(20):
     person_days.append(np.nansum(exp))
 
 fig = plt.figure(figsize=(6.8,4.8))
-plt.grid(linewidth=0.5)
+plt.grid(linewidth=0.5, color='0.5', alpha=0.5, linestyle='-.')
 plt.plot(person_days, '-o', markersize=7, color='darkgoldenrod')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 14)
@@ -460,6 +460,6 @@ for text in l.get_texts():
     s = str(text)
     if s[12] == 'P':
         text.set_color('darkgoldenrod')
-plt.savefig('fig_1e.png',dpi=600)
+plt.savefig('fig_1e.pdf',dpi=600)
 
  
