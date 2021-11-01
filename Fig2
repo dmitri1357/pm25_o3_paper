@@ -150,12 +150,12 @@ for k in range(20):
 # plot A
 
 fig = plt.figure(figsize=(8,6))
-plt.grid(linewidth=0.5)
+plt.grid(linewidth=0.5, color='0.5', alpha=0.5, linestyle='-.')
 plt.plot(year_counts, '-o', markersize=7, color='orangered')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 15)
 plt.yticks(np.arange(0,30,5), fontsize=15)
-plt.ylabel('# of total days', fontsize = 17)
+plt.ylabel('Number of days', fontsize = 17)
 plt.xlabel('Year', fontsize = 17)
 plt.title('(A) Frequency of widespread co-occurrence days', fontsize = 17)
 l = plt.legend(['Total July-September days (+0.62 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.002)'], 
@@ -164,18 +164,17 @@ for text in l.get_texts():
     s = str(text)
     if s[12] == 'T':
         text.set_color('orangered')
-plt.savefig('fig_2a.png',dpi=600)
+plt.savefig('fig_2a.pdf',dpi=600)
 
 # plot B
 
 fig = plt.figure(figsize=(8,6))
-plt.grid(linewidth=0.5)
+plt.grid(linewidth=0.5, color='0.5', alpha=0.5, linestyle='-.')
 plt.plot(longest, '-o', markersize=7, color='tab:brown')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','',
            '','2010','','','','','2015','','','','','2020'), fontsize = 15)
 plt.yticks(np.arange(0,18,2), fontsize=15)
-plt.ylabel('# of consecutive days', fontsize = 17)
-plt.xlabel('Year', fontsize = 17)
+plt.ylabel('Number of consecutive days', fontsize = 17)
 plt.title('(B) Persistence of widespread co-occurrence days', fontsize = 17)
 l = plt.legend(['Most consecutive days (+0.31 d $\mathregular{y^-}$$\mathregular{^1}$, $\it{p}$ = 0.001)'], 
             loc='upper left', fontsize=13)
@@ -183,7 +182,7 @@ for text in l.get_texts():
     s = str(text)
     if s[12] == 'M':
         text.set_color('tab:brown')
-plt.savefig('fig_2b.png',dpi=600)
+plt.savefig('fig_2b.pdf',dpi=600)
         
 # plot C
 
@@ -408,7 +407,7 @@ plt.plot(wide_percs_pm,'*',color='tab:orange',markersize=12)
 plt.plot(wide_percs_oz,'D',color='tab:blue',markersize=8)
 dummies = np.repeat(95,20)
 plt.plot(dummies,'*',color='tab:blue',alpha=0)
-plt.grid(linewidth=0.5)
+plt.grid(linewidth=0.5, color='0.5', alpha=0.5, linestyle='-.')
 plt.xticks(np.arange(0,20,1), ('2001','','','','2005','','','','',
            '2010','','','','','2015','','','','','2020'), fontsize = 15)
 plt.yticks(np.arange(90,101,1), fontsize=15)
@@ -423,7 +422,7 @@ for text in l.get_texts():
         text.set_color('tab:orange')
     else:
         text.set_color('tab:blue')
-plt.savefig('fig_2c.png',dpi=600)
+plt.savefig('fig_2c.pdf',dpi=600)
 
 # plot D
 
