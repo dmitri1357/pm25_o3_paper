@@ -42,12 +42,12 @@ slopes1 = np.empty(10000)
 for k in range(10000):
     run = np.random.permutation(counts1)
     slopes1[k] = stats.linregress(x,run)[0]
-slope_perm = stats.percentileofscore(slopes1, slope)
+slope_perc = stats.percentileofscore(slopes1, slope)
 
 if slope > 0:
-    permuted_pvals = 100 - slope_perm
+    permuted_pvals = 100 - slope_perc
 else:
-    permuted_pvals = 100 - (100 - slope_perm)
+    permuted_pvals = slope_perc
 permuted_pvals = permuted_pvals/100
 print(permuted_pvals)
 
@@ -74,12 +74,12 @@ slopes2 = np.empty(10000)
 for k in range(10000):
     run = np.random.permutation(counts2)
     slopes2[k] = stats.linregress(x,run)[0]
-slope_perm1 = stats.percentileofscore(slopes2, slope1)
+slope_perc1 = stats.percentileofscore(slopes2, slope1)
 
 if slope1 > 0:
-    permuted_pvals = 100 - slope_perm1
+    permuted_pvals = 100 - slope_perc1
 else:
-    permuted_pvals = 100 - (100 - slope_perm1)
+    permuted_pvals = slope_perc1
 permuted_pvals = permuted_pvals/100
 print(permuted_pvals)
 
